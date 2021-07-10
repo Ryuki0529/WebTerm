@@ -1,0 +1,557 @@
+@charset "utf-8";
+/* webフォント「Noto Serif JP」 */
+@import url("https://fonts.googleapis.com/css?family=Noto+Sans+JP");
+@import url("../webfonts/RictyDiminished-Regular.woff");
+/* fontawesomeの読み込み */
+//@import url("https://use.fontawesome.com/releases/v5.5.0/css/all.css");
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  color: white;
+  font-family: "Noto Sans JP", "Meiryo", "Hiragino Kaku Gothic ProN", "Hiragino Kaku Gothic Pro", "Noto Sans Japanese",
+    sans-serif;
+  font-size: 12pt;
+  font-weight: 1;
+  line-height: 1.6;
+  background-attachment: fixed;
+  background: #0d1117;
+  overflow: hidden;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0);
+  border: none;
+  border-radius: 10px;
+  box-shadow: inset 0 0 2px #777;
+}
+::-webkit-scrollbar-thumb {
+  background: rgb(65, 65, 65);
+  border-radius: 10px;
+  box-shadow: none;
+}
+
+.container {
+  max-width: 1200px;
+  width: 100%;
+  height: auto;
+  margin: 0 auto;
+  padding: 0 15px;
+}
+
+h1 {
+  font-size: 24pt;
+  text-align: center;
+}
+h2 {
+  font-size: 18pt;
+  text-align: center;
+}
+h3 {
+  font-size: 15pt;
+  text-align: center;
+}
+
+a {
+  text-decoration: none;
+}
+
+button {
+  background-color: rgba(255, 255, 255, 0);
+  border: none;
+  color: wheat;
+}
+
+input[type="text"],
+input[type="search"],
+input[type="password"],
+input[type="number"],
+textarea,
+select {
+  width: 100%;
+  font-size: 14pt;
+  padding: 5px;
+  color: wheat;
+  background: #161b22;
+  border: 1px solid gray;
+  &:focus {
+    border: 1px solid blueviolet;
+    outline: none;
+  }
+}
+
+dialog {
+  position: relative;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  height: 100%;
+  background-color: transparent;
+  border: 0;
+  padding: 0;
+  color: whitesmoke;
+  transform: translate(-50%, -50%);
+  visibility: hidden;
+  &::backdrop {
+    background-color: rgba(0, 0, 0, 0.5);
+    animation: modal-open 0.4s ease;
+  }
+}
+
+dialog.close {
+  animation: modal-close 0.5s ease !important;
+  &::backdrop {
+    animation: modalback-close 0.4s ease !important;
+  }
+}
+
+dialog[open] {
+  visibility: visible;
+  animation: modal-slide 0.5s ease;
+}
+
+@keyframes modal-open {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes modal-close {
+  0% {
+    opacity: 1;
+    top: 50%;
+  }
+  100% {
+    opacity: 0;
+    top: 40%;
+  }
+}
+
+@keyframes modalback-close {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes modal-slide {
+  0% {
+    opacity: 0;
+    top: 45%;
+  }
+  100% {
+    opacity: 1;
+    top: 50%;
+  }
+}
+
+// ベースのflexbox
+@mixin flexbese($ac: stretch, $ai: normal, $jc: center) {
+  display: flex;
+  align-content: $ac;
+  align-items: $ai;
+  justify-content: $jc;
+  flex-flow: row wrap;
+  width: 100%;
+}
+
+/*#####################*/
+/*    メインレイアウト   */
+/*#####################*/
+
+header {
+  // ウィンドウタイトルバー
+  width: 100%;
+  height: 25px;
+  font-size: 12pt;
+  -webkit-app-region: drag;
+  background: #161b22;
+  span.app-name {
+    padding: 3px;
+    height: 100%;
+  }
+  #app-setting {
+    height: 100%;
+    padding: 3px 12px;
+    float: right;
+    color: white;
+    -webkit-app-region: no-drag;
+    background-color: rgb(0, 61, 84);
+    cursor: pointer;
+  }
+  #new-ssh-window {
+    height: 100%;
+    padding: 3px 12px;
+    float: right;
+    color: white;
+    -webkit-app-region: no-drag;
+    background-color: darkviolet;
+    cursor: pointer;
+  }
+  #new-shell-window {
+    height: 100%;
+    padding: 3px 12px;
+    float: right;
+    color: white;
+    -webkit-app-region: no-drag;
+    background-color: chocolate;
+    cursor: pointer;
+  }
+  #window-maximize,
+  #window-minimize {
+    height: 100%;
+    padding: 3px 12px;
+    float: right;
+    color: white;
+    -webkit-app-region: no-drag;
+    transition: all 0.4s;
+    &:hover {
+      background-color: #4f4f4f;
+    }
+  }
+  #window-close {
+    height: 100%;
+    padding: 3px 12px;
+    float: right;
+    color: white;
+    -webkit-app-region: no-drag;
+    transition: all 0.4s;
+    &:hover {
+      background-color: rgb(255, 102, 0);
+    }
+  }
+}
+
+#ssh-conection-modal {
+  // SSHコネクション情報入力
+  div.wrap {
+    max-width: 800px;
+    width: 100%;
+    max-height: 500px;
+    height: 100%;
+    background-color: #151a23;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 0 1em rgb(0, 23, 31);
+    border-radius: 10px;
+    padding: 20px;
+    .modal-close {
+      position: absolute;
+      top: 20px; right: 20px;
+    }
+    div.line {
+      @include flexbese;
+      max-width: 860px;
+      margin: 0 auto;
+      text-align: center;
+      .input-label {
+        width: 100%;
+        display: inline-block;
+        background-color: white;
+        color: black;
+        border-right: 1px solid black;
+      }
+      input[type="text"],
+      input[type="password"] {
+        text-align: center;
+        &:disabled {
+          background-color: #31373f;
+        }
+      }
+      #privateKey-choice {
+        font-size: 15pt;
+        padding: 2.5px;
+        width: 100%;
+        color: black;
+        background-color: ghostwhite;
+        cursor: pointer;
+        &:disabled {
+          background-color: #31373f;
+        }
+      }
+      #try-connect-btn {
+        display: block;
+        max-width: 150px;
+        width: 100%;
+        padding: 10px 20px;
+        margin: 0 auto;
+        background-color: blueviolet;
+        color: white;
+        font-size: 15pt;
+        border-radius: 20px;
+        cursor: pointer;
+        &:disabled {
+          background-color: #31373f;
+        }
+      }
+    }
+  }
+}
+
+#connection-msg-modal {
+  max-width: 450px;
+  transform: translate(-50%, -50%);
+  color: white;
+  .title {
+    display: block;
+    width: 100%;
+    font-size: 14pt;
+    padding: 3px;
+    background-color: #0d1117;
+  }
+  .msg {
+    display: block;
+    width: 100%;
+    padding: 20px 15px;
+    background-color: rgb(49, 49, 49);
+  }
+  .bun-emen {
+    display: block;
+    padding: 4px 15px;
+    text-align: right;
+    background-color: rgb(49, 49, 49);
+    button {
+      display: inline-block;
+      padding: 3px 20px;
+      border: 1px solid white;
+    }
+  }
+}
+
+.session-group {
+  width: 100%;
+  height: calc(100vh - 25px);
+  position: relative;
+  .command-send-elem {
+    max-width: 100%;
+    width: 100%;
+    height: 80px;
+    background: #161b22;
+    padding: 20px;
+  }
+  .screen-selections {
+    @include flexbese($ai: center, $jc: left);
+    height: 40px;
+    width: 100%;
+    #screen-tabs {
+      height: 100%;
+      max-width: calc(100% - 300px);
+      overflow: hidden;
+      white-space: nowrap;
+      /*&::-webkit-scrollbar,
+      &::-webkit-scrollbar-track,
+      &::-webkit-scrollbar-thumb { display: none; }*/
+      .tab {
+        display: inline-block;
+        //min-width: 150px;
+        position: relative;
+        input[type="radio"] {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          border-radius: 0;
+          opacity: 0;
+          cursor: pointer;
+          &:hover + label {
+            border-bottom: 2px solid orange;
+            background-color: #2b3441;
+          }
+        }
+        input[type="radio"] + label {
+          display: inline-block;
+          min-width: 150px;
+          padding: 5px;
+          padding-left: 10px;
+          padding-right: 20px;
+          border-bottom: 2px solid #161b22;
+          background-color: #161b22;
+          height: calc(100% - 2px);
+          transition: all 0.4s;
+        }
+        input[type="radio"]:checked + label {
+          border-bottom: 2px solid orange;
+          background-color: #2b3441;
+        }
+        button.screen-close {
+          position: absolute;
+          top: 50%;
+          right: 10px;
+          transform: translateY(-50%);
+          background-color: unset;
+        }
+      }
+    }
+    .add-tab-block {
+      width: 300px;
+      padding: 0 10px;
+      //transform: translateY(-20px);
+      .add-tab-btn {
+        background-color: #000;
+        color: whitesmoke;
+        border: 1px solid whitesmoke;
+        width: auto;
+        padding: 2px 10px;
+        margin: 0 5px;
+        font-size: 14pt;
+        font-weight: bold;
+        border-radius: 20px;
+        transform: translateY(8%);
+        cursor: pointer;
+      }
+    }
+  }
+  .terminal-accessibility-elem {
+    width: 100%;
+    height: calc(100% - 40px);
+    position: relative;
+    .focus-only {
+      position: absolute;
+      top: 0;
+      left: 0;
+      opacity: 0;
+      font-size: 1px;
+    }
+    #terminal-screens {
+      width: 100%;
+      height: 100%;
+      background-color: black;
+      overflow: hidden;
+      .screen {
+        width: 100%;
+        height: 100%;
+      }
+    }
+  }
+}
+
+#app-setting-modal {
+  //background-color: rgba(0, 0, 0, 0.5);
+  div.wrap {
+    max-width: 800px;
+    width: 100%;
+    max-height: 500px;
+    height: 100%;
+    background-color: #151a23;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 0 1em rgb(0, 23, 31);
+    border-radius: 10px;
+    padding: 20px;
+    //box-shadow: 1em 1em 1.5em #2f2300;
+    .content {
+      width: 100%;
+      padding-top: 20px;
+      color: whitesmoke;
+      h3 {
+        text-align: left;
+        margin: 20px 0;
+      }
+      .setting-items {
+        @include flexbese($jc: left);
+        .item {
+          flex-basis: 50%;
+          @include flexbese($jc: left);
+          .label {
+            flex-basis: 50%;
+            text-align: center;
+            font-size: 13pt;
+            padding: 5px;
+          }
+          .input {
+            flex-basis: 50%;
+            padding: 5px;
+            input[type="number"],
+            select {
+              color: whitesmoke;
+              border-top: none;
+              border-left: none;
+              border-right: none;
+              text-align: center;
+              &:focus {
+                border-top: none;
+                border-left: none;
+                border-right: none;
+              }
+            }
+          }
+          fieldset {
+            width: 100%;
+            padding: 5px 10px;
+            border: 2px dotted gray;
+          }
+          .input.radio {
+            flex-basis:100%;
+            text-align:center;
+            .radiobox {
+              display: inline-block;
+              position: relative;
+            }
+          }
+          .input.radio input {
+            position: absolute;
+            top: 0; left: 0;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            &:checked + label {
+              background-color: mediumblue;
+              color: white;
+            }
+          }
+          .input.radio input + label {
+            display: inline-block;
+            padding: 3px 10px;
+            background-color: whitesmoke;
+            color: black;
+          }
+        }
+      }
+      #app-setting-activate {
+        display: block;
+        max-width: 100px;
+        width: 100%;
+        padding: 5px 10px;
+        font-size: 15pt;
+        margin: 0 auto;
+        margin-top: 20px;
+        background-color: blueviolet;
+        cursor: pointer;
+        color: white;
+      }
+    }
+    .modal-close {
+      position: absolute;
+      top: 30px;
+      right: 30px;
+      font-size: 18pt;
+    }
+  }
+}
+
+.modal-close {
+  font-size: 18pt;
+}
+
+.xterm-accessibility {
+  margin-right: 20px;
+}

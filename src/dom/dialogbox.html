@@ -1,0 +1,132 @@
+<dialog id="app-setting-modal">
+  <div class="wrap">
+    <h2>設定</h2>
+    <div class="content">
+      <h3>ターミナルの設定</h3>
+      <div class="setting-items">
+        <div class="item">
+          <div class="label"><label for="set-term-fontsize">フォントサイズ(pt)</label></div>
+          <div class="input"><input name="fontSize" min="10" max="100" type="number" id="set-term-fontsize"></div>
+        </div>
+        <div class="item">
+          <div class="label"><label for="set-term-fontcolor">デフォルト文字色</label></div>
+          <div class="input">
+            <select name="foreground" id="set-term-fontcolor">
+              <option value="green">green</option>
+              <option value="blue">blue</option>
+              <option value="white">white</option>
+              <option value="red">red</option>
+              <option value="yellow">yellow</option>
+              <option value="magenta">ymagenta</option>
+              <option value="cyan">cyan</option>
+            </select>
+          </div>
+        </div>
+        <div class="item">
+          <div class="label"><label for="set-term-bg-color">背景色</label></div>
+          <div class="input">
+            <select name="background" id="set-term-bg-color">
+              <option value="black">black</option>
+              <option value="blueviolet">blueviolet</option>
+              <option value="darkmagenta">darkmagenta</option>
+              <option value="darkgreen">darkgreen</option>
+              <option value="darkblue">darkblue</option>
+              <option value="darkslateblu">darkslateblu</option>
+              <option value="mediumviole">mediumviole</option>
+              <option value="darkviolet">darkviolet</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <h3>アプリケーションの設定</h3>
+      <div class="setting-items">
+        <div class="item" style="flex-basis:50%;">
+          <fieldset id="set-startup-terminal-mode">
+            <legend>起動時のターミナルモード</legend>
+            <div class="input radio">
+              <div class="radiobox">
+                <input type="radio" value="shell" name="set-startup-terminal-mode" id="set-stm-shell" value="0">
+                <label for="set-stm-shell">PowerShell</label>
+              </div>
+              <div class="radiobox">
+                <input type="radio" value="ssh" name="set-startup-terminal-mode" id="set-stm-ssh" value="1">
+                <label for="set-stm-ssh">SSH・SFTP</label>
+              </div>
+            </div>
+          </fieldset>
+        </div>
+        <div class="item" style="flex-basis:50%;">
+          <fieldset id="set-screen-reader-mode">
+            <legend>スクリーンリーダーモード</legend>
+            <div class="input radio">
+              <div class="radiobox">
+                <input type="radio" name="input-srm" id="set-srm-none" value="0">
+                <label for="set-srm-none">OFF</label>
+              </div>
+              <div class="radiobox">
+                <input type="radio" name="input-srm" id="set-srm-pctalker" value="1">
+                <label for="set-srm-pctalker">PC-Talker</label>
+              </div>
+              <div class="radiobox">
+                <input type="radio" name="input-srm" id="set-srm-nvda" value="2">
+                <label for="set-srm-nvda">NVDA</label>
+              </div>
+            </div>
+          </fieldset>
+        </div>
+      </div>
+      <button id="app-setting-activate">適用</button>
+    </div>
+    <button data-target="app-setting-modal" aria-label="設定をキャンセル" class="modal-close">X</button>
+  </div>
+</dialog>
+
+<dialog id="ssh-conection-modal">
+  <div class="wrap">
+    <div class="line">
+      <div class="column" style="flex-basis: 70%;padding:10px">
+        <h2>接続情報入力</h2>
+      </div>
+      <div class="column" style="flex-basis: 70%;">
+        <label class="input-label" for="input-hostname">ホストアドレス</label>
+        <input value="192.168.137.98" type="text" id="input-hostname">
+      </div>
+      <div class="column" style="flex-basis: 30%;">
+        <label class="input-label" for="input-portnumber">ポート番号</label>
+        <input value="22" type="text" id="input-portnumber">
+      </div>
+      <div class="column" style="flex-basis: 50%;">
+        <label class="input-label" for="input-username">ユーザーID</label>
+        <input value="ryuki" type="text" id="input-username">
+      </div>
+      <div class="column" style="flex-basis: 50%;">
+        <label class="input-label" for="input-password">パスワード</label>
+        <input value="ymzkrk33" type="password" id="input-password">
+      </div>
+      <div class="column" style="flex-basis: 100%;padding:10px;">
+        <input type="checkbox" id="public-key-auth-change">
+        <label class="" for="public-key-auth-change">公開鍵認証を使用</label>
+      </div>
+      <div class="column" style="flex-basis: 50%;">
+        <label class="input-label" for="input-privateKey">キーファイル</label>
+        <div style="display:inline-block;width:calc(100% - 100px);"><input type="text" id="input-privateKey" disabled></div>
+        <div style="display:inline-block;width:96.4px;">
+          <button id="privateKey-choice" disabled>選択</button>
+        </div>
+      </div>
+      <div class="column" style="flex-basis: 50%;">
+        <label class="input-label" for="input-passphrase">パスフレーズ</label>
+        <input type="password" id="input-passphrase" disabled>
+      </div>
+      <div class="column" style="flex-basis: 100%;padding:25px 0;">
+        <button id="try-connect-btn">接続開始</button>
+      </div>
+    </div>
+    <button data-target="ssh-conection-modal" aria-label="キャンセル" class="modal-close">X</button>
+  </div>
+</dialog>
+
+<dialog id="connection-msg-modal">
+  <span class="title"></span><span class="msg"></span>
+  <div class="bun-emen"><button id="msg-modal-close" class="modal-close">OK</button></div>
+</dialog>

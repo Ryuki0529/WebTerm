@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>WebTerm</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline';" />
+  <!--<script src="js/jquery-3.6.0.min.js"></script>-->
+  <link rel="stylesheet" href="css/main.min.css">
+  <link rel="stylesheet" href="css/font-awesome-all.min.css">
+  <link rel="stylesheet" href="../node_modules/xterm/css/xterm.css">
+</head>
+
+<body>
+  <header>
+    <span class="app-name">WebTerm (Prototype)</span>
+    <button id="window-close" aria-label="閉じる">X</button>
+    <button id="window-maximize" aria-label="最大化">❐</button>
+    <button id="window-minimize" aria-label="最小化">ー</button>
+    <button id="app-setting" title="クライアントの設定"><i class="fas fa-cog"></i>&nbsp;設定</button>
+    <button id="new-ssh-window" title="新しいSSH・SFTP端末の起動">+ SSH Window</button>
+    <button id="new-shell-window" title="新しいPowerShellウィンドウの起動">+ Shell Window</button>
+  </header>
+  <div class="session-group">
+    <div class="screen-selections">
+      <div id="screen-tabs">
+        <!--<div class="tab">
+          <input type="radio" name="screen-name" id="screen-label-1">
+          <label for="screen-label-1">SSH - Ubuntu</label>
+          <button title="タブを閉じる" class="screen-close">X</button>
+        </div>-->
+      </div>
+      <div class="add-tab-block">
+        <button data-type="shell" title="新しいタブを開く(Shell)" class="add-tab-btn">＋ Shell</button>
+        <button data-type="ssh" title="新しいタブを開く(SSH)" class="add-tab-btn">＋ SSH</button>
+      </div>
+    </div>
+    <div class="terminal-accessibility-elem">
+      <a class="focus-only" href="#">ターミナル開始位置（フォーカス専用）</a>
+      <div id="terminal-screens">
+        <!--<div class="command-send-elem">
+          <input id="txtMessage" placeholder="input command here..." autofocus type="text" class="form-control" />
+        </div>-->
+        <!--<div class="screen"></div>-->
+      </div>
+      <a class="focus-only" href="#">ターミナル終了位置（フォーカス専用）</a>
+    </div>
+  </div>
+  <script src="js/renderer.js"></script>
+</body>
+</html>
