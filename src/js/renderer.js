@@ -40,7 +40,7 @@ class RendererMain {
       this.#CONFIG = config; this.#refreshTermScreen();
     });
 
-    this.#createTabSelection( FIRST_GET.get('d_mode') );
+    this.#createTabSelection(FIRST_GET.get('d_mode'));
     [...this.#addScreenTrigger].forEach(trigger => {
       trigger.addEventListener('click', event => {
         this.#createTabSelection(event.target.dataset.type);
@@ -53,19 +53,7 @@ class RendererMain {
       if (this.#isSpeech === true) {
         this.#ipcRenderer.send('text-to-speech', stripAnsi.unstyle(arg.buffer));
       }
-      let re = arg.buffer.match(/[dl-]([r-][w-][xtsS-]){3}\s+[0-9]+\s+\w+\s+\w+\s+[0-9]+\s+[^\n]+\n/g);
-      if (re) {
-        re.forEach(result => {
-          if (result.match(/^d/)) {
-            arg.buffer = arg.buffer.replace(result, LINE_BG_BLUE + result);
-          } else if (result.match(/^l/)) {
-            arg.buffer = arg.buffer.replace(result, LINE_BG_GREEN + result);
-          } else if (result.match(/^-/)) {
-            arg.buffer = arg.buffer.replace(result, LINE_BG_ORANGE + result);
-          }
-        });
-      }
-      (this.#terminals.get(Number(arg.screenID))).write(arg.buffer);
+      (this.#terminals.get(Number(arg.screenID))).write(this.#editBufferStream(arg.buffer));
     });
 
     this.#screenSelections.addEventListener('wheel', event => {
@@ -119,14 +107,14 @@ class RendererMain {
       .addEventListener('click', event => this.windowClose());
 
     document.getElementById('app-setting').addEventListener('click', () => {
-      this.#settingModalElem.querySelector('#set-term-fontsize').value = this.#CONFIG.xterm.fontSize;
+      this.#settingModalElem.querySelector('#set-term-fontsize').value = this.#CONFIG.appConfig.xterm.fontSize;
       this.#settingModalElem
-        .querySelector(`#set-term-fontcolor option[value="${this.#CONFIG.xterm.theme.foreground}"]`)
+        .querySelector(`#set-term-fontcolor option[value="${this.#CONFIG.appConfig.xterm.theme.foreground}"]`)
         .setAttribute('selected', 'true');
       this.#settingModalElem
-        .querySelector(`#set-term-bg-color option[value="${this.#CONFIG.xterm.theme.background}"]`)
+        .querySelector(`#set-term-bg-color option[value="${this.#CONFIG.appConfig.xterm.theme.background}"]`)
         .setAttribute('selected', 'true');
-      switch (this.#CONFIG.app.screenReaderMode) {
+      switch (this.#CONFIG.appConfig.app.accessibility.screenReaderMode) {
         case 1:
           this.#settingModalElem.querySelector('#set-srm-pctalker').click(); break;
         case 2:
@@ -134,7 +122,7 @@ class RendererMain {
         default:
           this.#settingModalElem.querySelector('#set-srm-none').click(); break;
       }
-      switch (this.#CONFIG.app.startUpTerminalMode) {
+      switch (this.#CONFIG.appConfig.app.startUpTerminalMode) {
         case 'shell':
           this.#settingModalElem.querySelector('#set-stm-shell').click(); break;
         case 'ssh':
@@ -142,26 +130,31 @@ class RendererMain {
         default:
           this.#settingModalElem.querySelector('#set-stm-shell').click(); break;
       }
+      if (this.#CONFIG.appConfig.app.accessibility.lsCommandView) {
+        this.#settingModalElem.querySelector('#set-ls-comand-effect')
+          .setAttribute('checked', '');
+      }
       this.#settingModalElem.showModal();
     });
 
     this.#settingModalElem.querySelector('#app-setting-activate')
       .addEventListener('click', e => {
-        this.#CONFIG.xterm.fontSize = this.#settingModalElem.querySelector('#set-term-fontsize').value;
-        this.#CONFIG.xterm.theme.foreground = this.#settingModalElem.querySelector('#set-term-fontcolor').value;
-        this.#CONFIG.xterm.theme.background = this.#settingModalElem.querySelector('#set-term-bg-color').value;
-        this.#CONFIG.app.screenReaderMode = Number(this.#settingModalElem.querySelector('#set-screen-reader-mode input[type="radio"]:checked').value);
-        this.#CONFIG.app.startUpTerminalMode = this.#settingModalElem.querySelector('#set-startup-terminal-mode input[type="radio"]:checked').value;
+        this.#CONFIG.appConfig.xterm.fontSize = this.#settingModalElem.querySelector('#set-term-fontsize').value;
+        this.#CONFIG.appConfig.xterm.theme.foreground = this.#settingModalElem.querySelector('#set-term-fontcolor').value;
+        this.#CONFIG.appConfig.xterm.theme.background = this.#settingModalElem.querySelector('#set-term-bg-color').value;
+        this.#CONFIG.appConfig.app.accessibility.screenReaderMode = Number(this.#settingModalElem.querySelector('#set-screen-reader-mode input[type="radio"]:checked').value);
+        this.#CONFIG.appConfig.app.startUpTerminalMode = this.#settingModalElem.querySelector('#set-startup-terminal-mode input[type="radio"]:checked').value;
+        this.#CONFIG.appConfig.app.accessibility.lsCommandView = this.#settingModalElem.querySelector('#set-ls-comand-effect').checked;
 
         this.#settingModalElem.querySelector('.modal-close').click();
         this.#refreshTermScreen();
-        this.#ipcRenderer.send('app-config-updated', { windowID: this.#windowID, config: this.#CONFIG });
+        this.#configUpdate();
       });
 
     [...this.#modalCloseTriggers].forEach(trigger => {
       trigger.addEventListener('click', e => {
         let modalElem = document.getElementById(e.target.dataset.target);
-        this.dialogClose( modalElem );
+        this.dialogClose(modalElem);
       });
     });
 
@@ -193,6 +186,65 @@ class RendererMain {
           .value = (this.#ipcRenderer.sendSync('get-file-path'))[0];
       });
 
+    this.#sshConnectionModal.querySelector('#ssh-profile-select')
+      .addEventListener('change', ( event ) => {
+        if ( event.target.value != 'none' ) {
+          this.#sshConnectionModal.querySelector('#input-hostname').value = this.#CONFIG.sshConfig[ event.target.value ].host;
+          this.#sshConnectionModal.querySelector('#input-portnumber').value = this.#CONFIG.sshConfig[ event.target.value ].port;
+          this.#sshConnectionModal.querySelector('#input-username').value = this.#CONFIG.sshConfig[ event.target.value ].user;
+          if ( this.#CONFIG.sshConfig[ event.target.value ].identityFile !== undefined ) {
+            if ( !this.#sshConnectionModal.querySelector('#public-key-auth-change').checked ) {
+              this.#sshConnectionModal.querySelector('#public-key-auth-change').click();
+            }
+            this.#sshConnectionModal.querySelector('#input-password').value = '';
+            this.#sshConnectionModal.querySelector('#input-privateKey').value = this.#CONFIG.sshConfig[ event.target.value ].identityFile;
+            if ( this.#CONFIG.sshConfig[ event.target.value ].passphrase !== undefined ) {
+              this.#sshConnectionModal.querySelector('#input-passphrase').value = this.#CONFIG.sshConfig[ event.target.value ].passphrase;
+            }
+          } else {
+            this.#sshConnectionModal.querySelector('#input-password').value = this.#CONFIG.sshConfig[ event.target.value ].password;
+            this.#sshConnectionModal.querySelector('#input-privateKey').value = '';
+            this.#sshConnectionModal.querySelector('#input-passphrase').value = '';
+            this.#sshConnectionModal.querySelector('#public-key-auth-change').checked
+              ? this.#sshConnectionModal.querySelector('#public-key-auth-change').click() : null;
+          }
+        } else {
+          this.#sshConnectionModal.querySelector('#public-key-auth-change').checked
+              ? this.#sshConnectionModal.querySelector('#public-key-auth-change').click() : null;
+          this.#sshConnectionModal.querySelector('#input-hostname').value = '';
+          this.#sshConnectionModal.querySelector('#input-portnumber').value = '';
+          this.#sshConnectionModal.querySelector('#input-username').value = '';
+          this.#sshConnectionModal.querySelector('#input-password').value = '';
+          this.#sshConnectionModal.querySelector('#input-privateKey').value = '';
+          this.#sshConnectionModal.querySelector('#input-passphrase').value = '';
+        }
+      });
+
+    this.#sshConnectionModal.querySelector('#save-ssh-conn-profile')
+      .addEventListener('click', ( event ) => {
+        if ( !confirm('入力した接続情報を保存しますか？') ) return;
+        const profileName = this.#sshConnectionModal.querySelector('#ssh-conn-profile-name').value;
+        if (
+          profileName.length !== 0 && profileName.length <= 20 &&
+          profileName.match(/[A-Za-z0-9_]+/g) && !profileName.match(/-/g)
+        ) {
+          this.#CONFIG.sshConfig[profileName] = {}
+          this.#CONFIG.sshConfig[profileName].host = this.#sshConnectionModal.querySelector('#input-hostname').value;
+          this.#CONFIG.sshConfig[profileName].port = this.#sshConnectionModal.querySelector('#input-portnumber').value;
+          this.#CONFIG.sshConfig[profileName].user = this.#sshConnectionModal.querySelector('#input-username').value;
+          if ( this.#sshConnectionModal.querySelector('#public-key-auth-change').checked ) {
+            this.#CONFIG.sshConfig[profileName].identityFile = this.#sshConnectionModal.querySelector('#input-privateKey').value;
+            if ( this.#sshConnectionModal.querySelector('#input-passphrase').value.length !== 0 ) {
+              this.#CONFIG.sshConfig[profileName].passphrase = this.#sshConnectionModal.querySelector('#input-passphrase').value;
+            }
+          } else this.#CONFIG.sshConfig[profileName].password = this.#sshConnectionModal.querySelector('#input-password').value;
+          this.#sshConnectionModal.querySelector('#ssh-conn-profile-name').value = '';
+          this.#configUpdate();
+          alert(`プロファイル名「${profileName}」で接続情報を保存しました。`);
+        } else alert('プロファイル名の形式が正しくありません。');
+        console.log(this.#CONFIG.sshConfig);
+      });
+
     this.#modalElem.querySelector('#msg-modal-close')
       .addEventListener('click', event => {
         this.#modalElem.close();
@@ -202,17 +254,43 @@ class RendererMain {
       });
   }
 
+  #editBufferStream(buffer) {
+    if (this.#CONFIG.appConfig.app.accessibility.lsCommandView) {
+      let re = buffer.match(/[dl-]([r-][w-][xtsS-]){3}\s+[0-9]+\s+\w+\s+\w+\s+[0-9]+\s+[^\n]+\n/g);
+      if (re) {
+        re.forEach(result => {
+          if (result.match(/^d/)) {
+            buffer = buffer.replace(result, LINE_BG_BLUE + result);
+          } else if (result.match(/^l/)) {
+            buffer = buffer.replace(result, LINE_BG_GREEN + result);
+          } else if (result.match(/^-/)) {
+            buffer = buffer.replace(result, LINE_BG_ORANGE + result);
+          }
+        });
+      }
+    }
+    return buffer;
+  }
+
   #getSshConnectionInfo() {
     return new Promise((resolve, reject) => {
       let sshConfig = {};
+
+      this.#sshConnectionModal.querySelector('#ssh-profile-select')
+        .innerHTML = `<option value="none">保存済み接続情報を使用</option>`;
+      for ( let [key, value] of Object.entries(this.#CONFIG.sshConfig) ) {
+        this.#sshConnectionModal.querySelector('#ssh-profile-select')
+          .innerHTML += `<option value="${key}">${key}</option>`;
+      }
+
       this.#sshConnectionModal.showModal();
       this.#sshConnectionModal.querySelector('#try-connect-btn')
         .addEventListener('click', (e) => {
-          this.dialogClose( this.#sshConnectionModal );
+          this.dialogClose(this.#sshConnectionModal);
           sshConfig.host = this.#sshConnectionModal.querySelector('#input-hostname').value;
-          sshConfig.port = Number( this.#sshConnectionModal.querySelector('#input-portnumber').value );
+          sshConfig.port = Number(this.#sshConnectionModal.querySelector('#input-portnumber').value);
           sshConfig.user = this.#sshConnectionModal.querySelector('#input-username').value;
-          if ( this.#sshConnectionModal.querySelector('#public-key-auth-change').checked ) {
+          if (this.#sshConnectionModal.querySelector('#public-key-auth-change').checked) {
             sshConfig.privateKey = this.#sshConnectionModal.querySelector('#input-privateKey').value;
             sshConfig.passphrase = this.#sshConnectionModal.querySelector('#input-passphrase').value;
           } else sshConfig.password = this.#sshConnectionModal.querySelector('#input-password').value;
@@ -230,7 +308,10 @@ class RendererMain {
     let sshConfig = null;
     if (mode === 'ssh') {
       sshConfig = await this.#getSshConnectionInfo();
-      if ( sshConfig === undefined ) return;
+      if (sshConfig === undefined) {
+        if ( this.#tabNumber === 0 ) this.windowClose();
+        return;
+      }
     }
 
     this.#tabNumber += 1;
@@ -327,7 +408,7 @@ class RendererMain {
 
   #createTermInstance(screenID, mode, sshConfig, targetTab) {
 
-    this.#terminals.set(screenID, new Terminal(this.#CONFIG.xterm));
+    this.#terminals.set(screenID, new Terminal(this.#CONFIG.appConfig.xterm));
     this.#fitAdons.set(screenID, new TerminalFitAddon());
     this.#webLinksAddon.set(screenID,
       new TerminalWebLinksAddon((event, url) => {
@@ -361,24 +442,24 @@ class RendererMain {
       } else if (e.ctrlKey && e.key === 'v') {
         this.#screenKeyStrokeSend(this.#ipcRenderer.on('clipboard-read'));
         return false;
-      } else if ( e.ctrlKey && e.key === 'b' ) {
-        if ( this.#virtualCursorMode.status && this.#virtualCursorMode.bagFlag ) {
-          this.#terminals.forEach(( value, key ) => {
+      } else if (e.ctrlKey && e.key === 'b') {
+        if (this.#virtualCursorMode.status && this.#virtualCursorMode.bagFlag) {
+          this.#terminals.forEach((value, key) => {
             value.setOption('screenReaderMode', false);
           }); this.#virtualCursorMode.status = false;
           this.#ipcRenderer.send('text-to-speech', 'スクリーンカーソルモードOFF');
-        } else if ( !this.#virtualCursorMode.status && !this.#virtualCursorMode.bagFlag ) {
-          this.#terminals.forEach(( value, key ) => {
+        } else if (!this.#virtualCursorMode.status && !this.#virtualCursorMode.bagFlag) {
+          this.#terminals.forEach((value, key) => {
             value.setOption('screenReaderMode', true);
           }); this.#virtualCursorMode.status = true;
           this.#ipcRenderer.send('text-to-speech', 'スクリーンカーソルモードON');
-        } else if ( !this.#virtualCursorMode.bagFlag ) {
+        } else if (!this.#virtualCursorMode.bagFlag) {
           this.#virtualCursorMode.bagFlag = true;
-        } else if ( this.#virtualCursorMode.bagFlag ) {
+        } else if (this.#virtualCursorMode.bagFlag) {
           this.#virtualCursorMode.bagFlag = false;
         }
         return false;
-      } else if ( e.key === 'Insert' ) {
+      } else if (e.key === 'Insert') {
         (this.#terminals.get(screenID)).blur();
         return false;
       }
@@ -393,15 +474,15 @@ class RendererMain {
     (this.#terminals.get(screenID)).onKey((e) => {
       if (e.domEvent.code === 'Enter') {
         this.#isSpeech = true;
-      } else if ( e.domEvent.code === 'ArrowUp' || e.domEvent.code === 'ArrowDown' ) {
+      } else if (e.domEvent.code === 'ArrowUp' || e.domEvent.code === 'ArrowDown') {
         this.#isSpeech = true;
         this.#ipcRenderer.send('text-to-speech', this.getCurrentBufferText());
-      } else if ( e.domEvent.code === 'ArrowRight' ) {
+      } else if (e.domEvent.code === 'ArrowRight') {
         this.#isSpeech = false;
         this.#ipcRenderer.send('text-to-speech', this.getCurrentBufferText());
-      } else if ( e.domEvent.code === 'ArrowLeft' || e.domEvent.code === 'Backspace' ) {
+      } else if (e.domEvent.code === 'ArrowLeft' || e.domEvent.code === 'Backspace') {
         this.#isSpeech = false;
-        this.#ipcRenderer.send('text-to-speech', this.getCurrentBufferText( this.#currentScreenID, true ));
+        this.#ipcRenderer.send('text-to-speech', this.getCurrentBufferText(this.#currentScreenID, true));
       } else {
         this.#isSpeech = false;
       }
@@ -427,11 +508,11 @@ class RendererMain {
 
   #refreshTermScreen(screenID = this.#currentScreenID) {
     const ITheme = {
-      background: this.#CONFIG.xterm.theme.background,
-      foreground: this.#CONFIG.xterm.theme.foreground
+      background: this.#CONFIG.appConfig.xterm.theme.background,
+      foreground: this.#CONFIG.appConfig.xterm.theme.foreground
     };
 
-    (this.#terminals.get(screenID)).setOption('fontSize', this.#CONFIG.xterm.fontSize);
+    (this.#terminals.get(screenID)).setOption('fontSize', this.#CONFIG.appConfig.xterm.fontSize);
     (this.#terminals.get(screenID)).setOption('theme', ITheme);
     this.#screenTermResize();
     this.#setWindowTitle();
@@ -457,12 +538,12 @@ class RendererMain {
     (this.#terminals.get(this.#currentScreenID)).focus();
   }
 
-  getCurrentBufferText(screenID = this.#currentScreenID, shift=false) {
+  getCurrentBufferText(screenID = this.#currentScreenID, shift = false) {
     let cursorY = (this.#terminals.get(screenID)).buffer.active.baseY;
     cursorY += (this.#terminals.get(screenID)).buffer.active.cursorY;
     let cursorX = (this.#terminals.get(screenID)).buffer.active.cursorX;
     return (this.#terminals.get(screenID)).buffer.active
-      .getLine(cursorY).translateToString( true,
+      .getLine(cursorY).translateToString(true,
         shift === true ? cursorX - 1 : cursorX + 1,
         shift === true ? cursorX : cursorX + 2
       );
@@ -476,7 +557,13 @@ class RendererMain {
     (this.#terminals.get(screenID)).scrollPages(number);
   }
 
-  dialogClose( dialog ) {
+  #configUpdate() {
+    this.#ipcRenderer.send('app-config-updated', {
+      windowID: this.#windowID, config: this.#CONFIG
+    });
+  }
+
+  dialogClose(dialog) {
     dialog.setAttribute('class', 'close');
     setTimeout(() => {
       dialog.close();

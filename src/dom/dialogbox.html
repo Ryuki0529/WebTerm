@@ -55,6 +55,9 @@
             </div>
           </fieldset>
         </div>
+      </div>
+      <h3>アクセシビリティーの設定</h3>
+      <div class="setting-items">
         <div class="item" style="flex-basis:50%;">
           <fieldset id="set-screen-reader-mode">
             <legend>スクリーンリーダーモード</legend>
@@ -74,6 +77,14 @@
             </div>
           </fieldset>
         </div>
+        <div class="item" style="flex-basis:50%;">
+          <div class="label"><label for="set-ls-comand-effect">lsコマンドの視覚効果</label></div>
+          <div class="input">
+            <div class="checkbox">
+              <input type="checkbox" id="set-ls-comand-effect"><label></label>
+            </div>
+          </div>
+        </div>
       </div>
       <button id="app-setting-activate">適用</button>
     </div>
@@ -84,24 +95,27 @@
 <dialog id="ssh-conection-modal">
   <div class="wrap">
     <div class="line">
-      <div class="column" style="flex-basis: 70%;padding:10px">
+      <div class="column profile-select" style="flex-basis:100%;padding:10px;">
         <h2>接続情報入力</h2>
+        <select id="ssh-profile-select">
+          <option value="none">保存済み接続情報を使用</option>
+        </select>
       </div>
       <div class="column" style="flex-basis: 70%;">
         <label class="input-label" for="input-hostname">ホストアドレス</label>
-        <input value="192.168.137.98" type="text" id="input-hostname">
+        <input type="text" id="input-hostname">
       </div>
       <div class="column" style="flex-basis: 30%;">
         <label class="input-label" for="input-portnumber">ポート番号</label>
-        <input value="22" type="text" id="input-portnumber">
+        <input type="text" id="input-portnumber">
       </div>
       <div class="column" style="flex-basis: 50%;">
         <label class="input-label" for="input-username">ユーザーID</label>
-        <input value="ryuki" type="text" id="input-username">
+        <input type="text" id="input-username">
       </div>
       <div class="column" style="flex-basis: 50%;">
         <label class="input-label" for="input-password">パスワード</label>
-        <input value="ymzkrk33" type="password" id="input-password">
+        <input type="password" id="input-password">
       </div>
       <div class="column" style="flex-basis: 100%;padding:10px;">
         <input type="checkbox" id="public-key-auth-change">
@@ -120,6 +134,14 @@
       </div>
       <div class="column" style="flex-basis: 100%;padding:25px 0;">
         <button id="try-connect-btn">接続開始</button>
+      </div>
+    </div>
+    <div class="line">
+      <div class="column" style="flex-basis:60%;">
+        <label for="ssh-conn-profile-name" style="color:rgb(163, 163, 163)">接続情報の保存（プロファイル名を入力）</label>
+        <input type="text" style="color:white;" id="ssh-conn-profile-name">
+        <button id="save-ssh-conn-profile">保存</button>
+        <span style="color:rgb(163, 163, 163)">形式：英数字A～Za～z0～9,記号「_」のみ</span>
       </div>
     </div>
     <button data-target="ssh-conection-modal" aria-label="キャンセル" class="modal-close">X</button>

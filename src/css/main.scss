@@ -241,7 +241,7 @@ header {
   div.wrap {
     max-width: 800px;
     width: 100%;
-    max-height: 500px;
+    max-height: 510px;
     height: 100%;
     background-color: #151a23;
     position: absolute;
@@ -260,6 +260,19 @@ header {
       max-width: 860px;
       margin: 0 auto;
       text-align: center;
+      .profile-select {
+        position: relative;
+        #ssh-profile-select {
+          position: absolute;
+          top: 50%; left: 0;
+          transform: translateY(-50%);
+          width: 250px;
+          border-top: unset;
+          border-left: unset;
+          border-right: unset;
+          color: white;
+        }
+      }
       .input-label {
         width: 100%;
         display: inline-block;
@@ -299,6 +312,18 @@ header {
         &:disabled {
           background-color: #31373f;
         }
+      }
+      #ssh-conn-profile-name {
+        display: inline-block;
+        width: 75%;
+        text-align: left;
+      }
+      #save-ssh-conn-profile {
+        display: inline-block;
+        width: 24%;
+        font-size: 15pt;
+        padding: 2px;
+        background-color: darkviolet;
       }
     }
   }
@@ -457,11 +482,14 @@ header {
     box-shadow: 0 0 1em rgb(0, 23, 31);
     border-radius: 10px;
     padding: 20px;
+    padding-bottom: 30px;
     //box-shadow: 1em 1em 1.5em #2f2300;
     .content {
       width: 100%;
-      padding-top: 20px;
+      padding-bottom: 10px;
       color: whitesmoke;
+      height: 410px;
+      overflow-y: scroll;
       h3 {
         text-align: left;
         margin: 20px 0;
@@ -476,10 +504,64 @@ header {
             text-align: center;
             font-size: 13pt;
             padding: 5px;
+            position: relative;
+            label {
+              display: block;
+              position: absolute;
+              width: 100%;
+              top: 50%; left: 50%;
+              transform: translate(-50%, -50%);
+            }
           }
           .input {
             flex-basis: 50%;
             padding: 5px;
+            div.checkbox {
+              position: relative;
+              padding: 5px;
+              width: 100%;
+              height: 100%;
+              input[type="checkbox"] {
+                position: absolute;
+                top: 50%; left: 50%;
+                width: 70px;
+                height: 30px;
+                opacity: 0;
+                transform: translate(-50%, -50%);
+                z-index: 3;
+                &:checked + label {
+                  background-color: darkviolet;
+                  &::after {
+                    transform: translate(43%, -50%);
+                  }
+                }
+              }
+              input[type="checkbox"] + label {
+                position: absolute;
+                background-color: transparent;
+                width: 70px;
+                height: 30px;
+                border: 1px solid gray;
+                border-radius: 30px;
+                top: 50%; left: 50%;
+                transform: translate(-50%, -50%);
+                transition: background-color .2s ease-in-out;
+                z-index: 0;
+                &::after {
+                  content: '';
+                  display: block;
+                  position: absolute;
+                  background-color: white;
+                  border-radius: 100%;
+                  width: 20px;
+                  height: 20px;
+                  top: 50%; left: 50%;
+                  transform: translate(-144%, -50%);
+                  transition: transform .2s ease-in-out;
+                  z-index: 1;
+                }
+              }
+            }
             input[type="number"],
             select {
               color: whitesmoke;
@@ -497,7 +579,8 @@ header {
           fieldset {
             width: 100%;
             padding: 5px 10px;
-            border: 2px dotted gray;
+            border: unset;
+            border-bottom: 2px dotted gray;
           }
           .input.radio {
             flex-basis:100%;
@@ -514,7 +597,7 @@ header {
             width: 100%;
             height: 100%;
             &:checked + label {
-              background-color: mediumblue;
+              background-color: darkviolet;
               color: white;
             }
           }
@@ -541,8 +624,8 @@ header {
     }
     .modal-close {
       position: absolute;
-      top: 30px;
-      right: 30px;
+      top: 20px;
+      right: 20px;
       font-size: 18pt;
     }
   }

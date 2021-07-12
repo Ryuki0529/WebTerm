@@ -1,4 +1,4 @@
-const { readFileSync, writeFileSync } = require('fs');
+const fs = require('fs');
 const pty = require('node-pty');
 const os = require('os');
 const { Client: SshClient, Server: SshServer } = require('ssh2');
@@ -10,12 +10,15 @@ const ref_wchar = require('ref-wchar-napi');
 const iconv = require("iconv-lite");
 
 const APP_NAME = "WebTerm";
+const HOME_PATH = process.env[process.platform === "win32" ? "USERPROFILE" : "HOME"];
+const USERDATA_PATH = app.getPath('userData');
 
 class AppControl {
 
   Windows = new Map();
   Terminals = new Map();
-  ElectronStore = new Store({ encryptionKey: 'ymzkrk33' });
+  CONFIG = new Store({ encryptionKey: 'ymzkrk33' });
+  SSH_CONFIG = new Store({ name: 'ssh.config' });
   PCTalker = ffi.Library('PCTKUSR.dll', {
     SoundMessage: ['BOOL', ['STRING', 'INT']],
     SoundPause: ['BOOL', ['BOOL']]
@@ -27,11 +30,11 @@ class AppControl {
 
   constructor() {
 
-    //this.ElectronStore.clear();
+    //this.CONFIG.clear();
     // 初期設定情報の登録
     //console.log(app.getPath('userData'));
-    if (!this.ElectronStore.has('xterm')) {
-      this.ElectronStore.store = {
+    if (!this.CONFIG.size === 0) {
+      this.CONFIG.store = {
         xterm: {
           rendererType: "canvas",
           cursorBlink: true,
@@ -47,8 +50,24 @@ class AppControl {
           }
         },
         app: {
-          screenReaderMode: 0,
+          accessibility: {
+            screenReaderMode: 0,
+            lsCommandView: false
+          },
           startUpTerminalMode: "shell"
+        }
+      }
+    }
+
+    if ( this.SSH_CONFIG.size === 0 ) {
+      this.SSH_CONFIG.store = {
+        "ubuntu": {
+          host: "192.168.137.98", port: 22,
+          user: "ryuki", password: "ymzkrk33"
+        },
+        "webdev": {
+          host: "160.251.14.97", port: 10529,
+          user: "ryuki", identityFile: "C:\Users\yamaz\.ssh\conoha-vps.pem"
         }
       }
     }
@@ -76,7 +95,7 @@ class AppControl {
 
     //  初期化完了時
     app.on('ready', () => {
-      this.createWindow( this.ElectronStore.store.app.startUpTerminalMode );
+      this.createWindow( this.CONFIG.store.app.startUpTerminalMode );
     });
 
     /*##############################################*/
@@ -152,11 +171,15 @@ class AppControl {
     });
 
     ipcMain.on('get-app-config', (event, arg) => {
-      event.returnValue = this.ElectronStore.store;
+      event.returnValue = {
+        appConfig: this.CONFIG.store,
+        sshConfig: this.SSH_CONFIG.store
+      }
     });
 
     ipcMain.on('app-config-updated', (event, arg) => {
-      this.ElectronStore.store = arg.config;
+      this.CONFIG.store = arg.config.appConfig;
+      this.SSH_CONFIG.store = arg.config.sshConfig;
       this.Windows.forEach((value, key) => {
         if (key != arg.windowID) {
           value.webContents.send('new-app-config-stream', arg.config);
@@ -199,6 +222,8 @@ class AppControl {
     });
     //win.maximize();
 
+    //let child = new BrowserWindow({ parent: win, modal: true, show: true, width: 300, height: 150 });
+
     win.loadURL(`file://${__dirname}/index.html?w_id=${win.id}&d_mode=${mode}`);
 
     //mainWindow.webContents.openDevTools();
@@ -222,7 +247,7 @@ class AppControl {
       pty: pty.spawn(shell, [], {
         name: "xterm-color",
         cols: cols, rows: rows,
-        cwd: process.env.HOME,
+        cwd: HOME_PATH, // process.env.HOME
         env: process.env,
         handleFlowControl: true
       })
@@ -247,7 +272,7 @@ class AppControl {
     return new Promise((resolve, reject) => {
 
       if ( 'privateKey' in sshConfig ) {
-        sshConfig.privateKey = readFileSync(sshConfig.privateKey);
+        sshConfig.privateKey = fs.readFileSync(sshConfig.privateKey);
       }
 
       const conn = new SshClient();
@@ -282,10 +307,10 @@ class AppControl {
   }
 
   speekToText( text ) {
-    if ((this.ElectronStore.store).app.screenReaderMode === 1) {
+    if ((this.CONFIG.store).app.accessibility.screenReaderMode === 1) {
       this.PCTalker.SoundMessage(iconv.encode(text, 'CP932'), 0);
       //console.log('PC-Talker');
-    } else if ((this.ElectronStore.store).app.screenReaderMode === 2) {
+    } else if ((this.CONFIG.store).app.accessibility.screenReaderMode === 2) {
       this.NVDA.nvdaController_speakText(iconv.encode(text, 'utf16'));
       //console.log('NVDA');
     }
