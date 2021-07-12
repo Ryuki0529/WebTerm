@@ -67,7 +67,7 @@ class AppControl {
         },
         "webdev": {
           host: "160.251.14.97", port: 10529,
-          user: "ryuki", identityFile: "C:\Users\yamaz\.ssh\conoha-vps.pem"
+          user: "ryuki", identityFile: "C:\\Users\\yamaz\\.ssh\\conoha-vps.pem"
         }
       }
     }
@@ -120,7 +120,9 @@ class AppControl {
       if (data.mode === 'shell') {
         ((this.Terminals.get(Number(data.window))).get(data.screenID)).pty.write(data.buffer);
       } else if (data.mode === 'ssh') {
-        ((this.Terminals.get(Number(data.window))).get(data.screenID)).stream.write(data.buffer);
+        try {
+          ((this.Terminals.get(Number(data.window))).get(data.screenID)).stream.write(data.buffer);
+        } catch ( e ) { /*console.log(e)*/ }
       }
     });
 
@@ -134,7 +136,9 @@ class AppControl {
       if (arg.mode === 'shell') {
         ((this.Terminals.get(Number(arg.window))).get(arg.screenID)).pty.resize(Number(arg.cols), Number(arg.rows));
       } else if (arg.mode === 'ssh') {
-        ((this.Terminals.get(Number(arg.window))).get(arg.screenID)).stream.setWindow(Number(arg.rows), Number(arg.cols));
+        try {
+          ((this.Terminals.get(Number(arg.window))).get(arg.screenID)).stream.setWindow(Number(arg.rows), Number(arg.cols));
+        } catch ( e ) { /*console.log(e)*/ }
       }
     });
 
@@ -157,8 +161,10 @@ class AppControl {
       if (arg.mode === 'shell') {
         (this.Terminals.get(Number(arg.window))).delete(Number(arg.screenID));
       } else if (arg.mode === 'ssh') {
-        ((this.Terminals.get(Number(arg.window))).get(Number(arg.screenID))).connection.destroy();
-        (this.Terminals.get(Number(arg.window))).delete(Number(arg.screenID));
+        try {
+          ((this.Terminals.get(Number(arg.window))).get(Number(arg.screenID))).connection.destroy();
+          (this.Terminals.get(Number(arg.window))).delete(Number(arg.screenID));
+        } catch ( e ) { /*console.log(e)*/ }
       }
     });
 
@@ -275,7 +281,7 @@ class AppControl {
         sshConfig.privateKey = fs.readFileSync(sshConfig.privateKey);
       }
 
-      const conn = new SshClient();
+      let conn = new SshClient();
       conn.on('ready', () => {
         conn.shell( { term: 'xterm-256color' }, (err, stream) => {
           if (err) throw err;
@@ -302,6 +308,11 @@ class AppControl {
           this.speekToText( '接続成功' );
           resolve();
         });
+      }).on( 'error', ( err ) => {
+        (this.Windows.get(windowID)).webContents.send(
+          "shellprocess-incomingData",
+          { buffer: new TextEncoder().encode(err), screenID }
+        ); conn = null; resolve();
       }).connect( sshConfig );
     });
   }

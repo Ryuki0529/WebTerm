@@ -376,7 +376,7 @@ header {
     width: 100%;
     #screen-tabs {
       height: 100%;
-      max-width: calc(100% - 300px);
+      max-width: calc(100% - 320px);
       overflow: hidden;
       white-space: nowrap;
       /*&::-webkit-scrollbar,
@@ -425,9 +425,22 @@ header {
       }
     }
     .add-tab-block {
-      width: 300px;
       padding: 0 10px;
+      @include flexbese($ai: center, $jc: left);
+      width: 320px;
       //transform: translateY(-20px);
+      .button-wrap {
+        border-radius: 20px;
+        border: 1px solid whitesmoke;
+        margin: 0 5px;
+        overflow: hidden;
+        button {
+          border-radius: unset;
+          margin: 0;
+          border: 0;
+          transform: translateY(0px);
+        }
+      }
       .add-tab-btn {
         background-color: #000;
         color: whitesmoke;

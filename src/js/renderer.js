@@ -187,22 +187,22 @@ class RendererMain {
       });
 
     this.#sshConnectionModal.querySelector('#ssh-profile-select')
-      .addEventListener('change', ( event ) => {
-        if ( event.target.value != 'none' ) {
-          this.#sshConnectionModal.querySelector('#input-hostname').value = this.#CONFIG.sshConfig[ event.target.value ].host;
-          this.#sshConnectionModal.querySelector('#input-portnumber').value = this.#CONFIG.sshConfig[ event.target.value ].port;
-          this.#sshConnectionModal.querySelector('#input-username').value = this.#CONFIG.sshConfig[ event.target.value ].user;
-          if ( this.#CONFIG.sshConfig[ event.target.value ].identityFile !== undefined ) {
-            if ( !this.#sshConnectionModal.querySelector('#public-key-auth-change').checked ) {
+      .addEventListener('change', (event) => {
+        if (event.target.value != 'none') {
+          this.#sshConnectionModal.querySelector('#input-hostname').value = this.#CONFIG.sshConfig[event.target.value].host;
+          this.#sshConnectionModal.querySelector('#input-portnumber').value = this.#CONFIG.sshConfig[event.target.value].port;
+          this.#sshConnectionModal.querySelector('#input-username').value = this.#CONFIG.sshConfig[event.target.value].user;
+          if (this.#CONFIG.sshConfig[event.target.value].identityFile !== undefined) {
+            if (!this.#sshConnectionModal.querySelector('#public-key-auth-change').checked) {
               this.#sshConnectionModal.querySelector('#public-key-auth-change').click();
             }
             this.#sshConnectionModal.querySelector('#input-password').value = '';
-            this.#sshConnectionModal.querySelector('#input-privateKey').value = this.#CONFIG.sshConfig[ event.target.value ].identityFile;
-            if ( this.#CONFIG.sshConfig[ event.target.value ].passphrase !== undefined ) {
-              this.#sshConnectionModal.querySelector('#input-passphrase').value = this.#CONFIG.sshConfig[ event.target.value ].passphrase;
+            this.#sshConnectionModal.querySelector('#input-privateKey').value = this.#CONFIG.sshConfig[event.target.value].identityFile;
+            if (this.#CONFIG.sshConfig[event.target.value].passphrase !== undefined) {
+              this.#sshConnectionModal.querySelector('#input-passphrase').value = this.#CONFIG.sshConfig[event.target.value].passphrase;
             }
           } else {
-            this.#sshConnectionModal.querySelector('#input-password').value = this.#CONFIG.sshConfig[ event.target.value ].password;
+            this.#sshConnectionModal.querySelector('#input-password').value = this.#CONFIG.sshConfig[event.target.value].password;
             this.#sshConnectionModal.querySelector('#input-privateKey').value = '';
             this.#sshConnectionModal.querySelector('#input-passphrase').value = '';
             this.#sshConnectionModal.querySelector('#public-key-auth-change').checked
@@ -210,7 +210,7 @@ class RendererMain {
           }
         } else {
           this.#sshConnectionModal.querySelector('#public-key-auth-change').checked
-              ? this.#sshConnectionModal.querySelector('#public-key-auth-change').click() : null;
+            ? this.#sshConnectionModal.querySelector('#public-key-auth-change').click() : null;
           this.#sshConnectionModal.querySelector('#input-hostname').value = '';
           this.#sshConnectionModal.querySelector('#input-portnumber').value = '';
           this.#sshConnectionModal.querySelector('#input-username').value = '';
@@ -221,28 +221,28 @@ class RendererMain {
       });
 
     this.#sshConnectionModal.querySelector('#save-ssh-conn-profile')
-      .addEventListener('click', ( event ) => {
-        if ( !confirm('入力した接続情報を保存しますか？') ) return;
-        const profileName = this.#sshConnectionModal.querySelector('#ssh-conn-profile-name').value;
-        if (
-          profileName.length !== 0 && profileName.length <= 20 &&
-          profileName.match(/[A-Za-z0-9_]+/g) && !profileName.match(/-/g)
-        ) {
-          this.#CONFIG.sshConfig[profileName] = {}
-          this.#CONFIG.sshConfig[profileName].host = this.#sshConnectionModal.querySelector('#input-hostname').value;
-          this.#CONFIG.sshConfig[profileName].port = this.#sshConnectionModal.querySelector('#input-portnumber').value;
-          this.#CONFIG.sshConfig[profileName].user = this.#sshConnectionModal.querySelector('#input-username').value;
-          if ( this.#sshConnectionModal.querySelector('#public-key-auth-change').checked ) {
-            this.#CONFIG.sshConfig[profileName].identityFile = this.#sshConnectionModal.querySelector('#input-privateKey').value;
-            if ( this.#sshConnectionModal.querySelector('#input-passphrase').value.length !== 0 ) {
-              this.#CONFIG.sshConfig[profileName].passphrase = this.#sshConnectionModal.querySelector('#input-passphrase').value;
-            }
-          } else this.#CONFIG.sshConfig[profileName].password = this.#sshConnectionModal.querySelector('#input-password').value;
-          this.#sshConnectionModal.querySelector('#ssh-conn-profile-name').value = '';
-          this.#configUpdate();
-          alert(`プロファイル名「${profileName}」で接続情報を保存しました。`);
-        } else alert('プロファイル名の形式が正しくありません。');
-        console.log(this.#CONFIG.sshConfig);
+      .addEventListener('click', (event) => {
+        if (confirm('入力した接続情報を保存しますか？')) {
+          const profileName = this.#sshConnectionModal.querySelector('#ssh-conn-profile-name').value;
+          if (
+            profileName.length !== 0 && profileName.length <= 20 &&
+            profileName.match(/[A-Za-z0-9_]+/g) && !profileName.match(/-/g)
+          ) {
+            this.#CONFIG.sshConfig[profileName] = {}
+            this.#CONFIG.sshConfig[profileName].host = this.#sshConnectionModal.querySelector('#input-hostname').value;
+            this.#CONFIG.sshConfig[profileName].port = this.#sshConnectionModal.querySelector('#input-portnumber').value;
+            this.#CONFIG.sshConfig[profileName].user = this.#sshConnectionModal.querySelector('#input-username').value;
+            if (this.#sshConnectionModal.querySelector('#public-key-auth-change').checked) {
+              this.#CONFIG.sshConfig[profileName].identityFile = this.#sshConnectionModal.querySelector('#input-privateKey').value;
+              if (this.#sshConnectionModal.querySelector('#input-passphrase').value.length !== 0) {
+                this.#CONFIG.sshConfig[profileName].passphrase = this.#sshConnectionModal.querySelector('#input-passphrase').value;
+              }
+            } else this.#CONFIG.sshConfig[profileName].password = this.#sshConnectionModal.querySelector('#input-password').value;
+            this.#sshConnectionModal.querySelector('#ssh-conn-profile-name').value = '';
+            this.#configUpdate();
+            alert(`プロファイル名「${profileName}」で接続情報を保存しました。`);
+          } else alert('プロファイル名の形式が正しくありません。');
+        }
       });
 
     this.#modalElem.querySelector('#msg-modal-close')
@@ -256,7 +256,7 @@ class RendererMain {
 
   #editBufferStream(buffer) {
     if (this.#CONFIG.appConfig.app.accessibility.lsCommandView) {
-      let re = buffer.match(/[dl-]([r-][w-][xtsS-]){3}\s+[0-9]+\s+\w+\s+\w+\s+[0-9]+\s+[^\n]+\n/g);
+      let re = buffer.match(/[dl-]([r-][w-][xtsS-]){3}.\s+[0-9]+\s+\w+\s+\w+\s+[0-9]+\s+[^\n]+\n/g);
       if (re) {
         re.forEach(result => {
           if (result.match(/^d/)) {
@@ -278,7 +278,7 @@ class RendererMain {
 
       this.#sshConnectionModal.querySelector('#ssh-profile-select')
         .innerHTML = `<option value="none">保存済み接続情報を使用</option>`;
-      for ( let [key, value] of Object.entries(this.#CONFIG.sshConfig) ) {
+      for (let [key, value] of Object.entries(this.#CONFIG.sshConfig)) {
         this.#sshConnectionModal.querySelector('#ssh-profile-select')
           .innerHTML += `<option value="${key}">${key}</option>`;
       }
@@ -309,9 +309,11 @@ class RendererMain {
     if (mode === 'ssh') {
       sshConfig = await this.#getSshConnectionInfo();
       if (sshConfig === undefined) {
-        if ( this.#tabNumber === 0 ) this.windowClose();
+        if (this.#tabNumber === 0) this.windowClose();
         return;
       }
+    } else if (mode === 'ssh-profile') {
+      return;
     }
 
     this.#tabNumber += 1;
