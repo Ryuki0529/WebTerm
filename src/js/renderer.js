@@ -19,6 +19,7 @@ class RendererMain {
   #commandResult = document.getElementById('terminal-screens');
   #settingModalElem = document.getElementById('app-setting-modal');
   #sshConnectionModal = document.getElementById('ssh-conection-modal');
+  #sshProfileModal = document.getElementById('ssh-profile-modal');
   #modalElem = document.getElementById('connection-msg-modal');
   #modalCloseTriggers = document.getElementsByClassName('modal-close');
   #windowID = Number(FIRST_GET.get('w_id'));
@@ -226,7 +227,7 @@ class RendererMain {
           const profileName = this.#sshConnectionModal.querySelector('#ssh-conn-profile-name').value;
           if (
             profileName.length !== 0 && profileName.length <= 20 &&
-            profileName.match(/[A-Za-z0-9_]+/g) && !profileName.match(/-/g)
+            profileName.match(/^[A-Za-z0-9_-]+$/)
           ) {
             this.#CONFIG.sshConfig[profileName] = {}
             this.#CONFIG.sshConfig[profileName].host = this.#sshConnectionModal.querySelector('#input-hostname').value;
@@ -243,6 +244,19 @@ class RendererMain {
             alert(`プロファイル名「${profileName}」で接続情報を保存しました。`);
           } else alert('プロファイル名の形式が正しくありません。');
         }
+        this.#ipcRenderer.send('window-active-to-blur-to-active', this.#windowID);
+      });
+
+    this.#sshConnectionModal.querySelector('#ssh-profile-input-value-clear')
+      .addEventListener('click', ( e ) => {
+        this.#sshConnectionModal.querySelector('#public-key-auth-change').checked
+            ? this.#sshConnectionModal.querySelector('#public-key-auth-change').click() : null;
+        this.#sshConnectionModal.querySelector('#input-hostname').value = '';
+        this.#sshConnectionModal.querySelector('#input-portnumber').value = '';
+        this.#sshConnectionModal.querySelector('#input-username').value = '';
+        this.#sshConnectionModal.querySelector('#input-password').value = '';
+        this.#sshConnectionModal.querySelector('#input-privateKey').value = '';
+        this.#sshConnectionModal.querySelector('#input-passphrase').value = '';
       });
 
     this.#modalElem.querySelector('#msg-modal-close')
@@ -303,6 +317,59 @@ class RendererMain {
     });
   }
 
+  #sshProfileManage() {
+    this.#sshProfileModal.querySelector('.profile-list').innerHTML = '';
+    const presetElem = this.#sshProfileModal.querySelector('.preset-element');
+    for (let [key, value] of Object.entries(this.#CONFIG.sshConfig)) {
+      const addEmen = document.createElement('li');
+      addEmen.appendChild(presetElem.cloneNode(true));
+
+      addEmen.querySelector('.profile-name').textContent = key;
+
+      addEmen.querySelector('input.host-address').value = value.host;
+      addEmen.querySelector('input.host-address').setAttribute('id', `ssh-profile-value-host-${key}`);
+      addEmen.querySelector('label.host-address').setAttribute('for', `ssh-profile-value-host-${key}`);
+
+      addEmen.querySelector('input.port-number').value = value.port;
+      addEmen.querySelector('input.port-number').setAttribute('id', `ssh-profile-value-port-${key}`);
+      addEmen.querySelector('label.port-number').setAttribute('for', `ssh-profile-value-port-${key}`);
+
+      addEmen.querySelector('input.user-name').value = value.user;
+      addEmen.querySelector('input.user-name').setAttribute('id', `ssh-profile-value-user-${key}`);
+      addEmen.querySelector('label.user-name').setAttribute('for', `ssh-profile-value-user-${key}`);
+
+      if ( value.identityFile !== undefined ) {
+        addEmen.querySelector('input.keyfile').value = value.identityFile;
+        addEmen.querySelector('input.keyfile').setAttribute('id', `ssh-profile-value-keyfile-${key}`);
+        addEmen.querySelector('label.keyfile').setAttribute('for', `ssh-profile-value-keyfile-${key}`);
+        addEmen.querySelector('input.keyfile').parentElement.removeAttribute('hidden');
+        addEmen.querySelector('input.password').parentElement.setAttribute('hidden', '');
+        if ( value.passphrase !== undefined ) {
+          addEmen.querySelector('input.passphrase').value = value.passphrase;
+          addEmen.querySelector('input.passphrase').setAttribute('id', `ssh-profile-value-passphrase-${key}`);
+          addEmen.querySelector('label.passphrase').setAttribute('for', `ssh-profile-value-passphrase-${key}`);
+          addEmen.querySelector('input.passphrase').parentElement.removeAttribute('hidden');
+        }
+      } else {
+        addEmen.querySelector('input.password').value = value.password;
+        addEmen.querySelector('input.password').setAttribute('id', `ssh-profile-value-password-${key}`);
+        addEmen.querySelector('label.password').setAttribute('for', `ssh-profile-value-password-${key}`);
+      }
+      addEmen.querySelector('.profile-delete').dataset.key = key;
+      addEmen.querySelector('.profile-delete')
+        .addEventListener('click', ( e ) => {
+          if ( confirm(`プロファイル「${key}」を削除しますか？`) ) {
+            delete this.#CONFIG.sshConfig[ key ];
+            e.target.parentElement.parentElement.remove();
+            this.#configUpdate();
+          }
+          this.#ipcRenderer.send('window-active-to-blur-to-active', this.#windowID);
+        });
+      this.#sshProfileModal.querySelector('.profile-list').appendChild(addEmen);
+    }
+    this.#sshProfileModal.showModal();
+  }
+
   async #createTabSelection(mode = 'shell') {
 
     let sshConfig = null;
@@ -313,6 +380,7 @@ class RendererMain {
         return;
       }
     } else if (mode === 'ssh-profile') {
+      this.#sshProfileManage();
       return;
     }
 

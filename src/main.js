@@ -201,8 +201,14 @@ class AppControl {
       this.Windows.get(Number(arg)).minimize();
     });
 
+    ipcMain.on('window-active-to-blur-to-active', ( event, windowID ) => {
+      (this.Windows.get( Number( windowID ) )).blur();
+      (this.Windows.get( Number( windowID ) )).focus();
+    });
+
     ipcMain.on('app:quit', (event, arg) => {
       this.Windows.get(Number(arg)).close();
+      //(this.Windows.get(Number(arg))).destroy();
       (this.Terminals.get(Number(arg))).forEach(( value, key ) => {
         if ( value.type === 'ssh' ) {
           value.connection.destroy();
@@ -312,7 +318,7 @@ class AppControl {
         (this.Windows.get(windowID)).webContents.send(
           "shellprocess-incomingData",
           { buffer: new TextEncoder().encode(err), screenID }
-        ); conn = null; resolve();
+        ); conn = null; this.speekToText( err ); resolve();
       }).connect( sshConfig );
     });
   }

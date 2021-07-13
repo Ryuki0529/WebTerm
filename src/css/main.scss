@@ -1,9 +1,15 @@
 @charset "utf-8";
-/* webフォント「Noto Serif JP」 */
-@import url("https://fonts.googleapis.com/css?family=Noto+Sans+JP");
-@import url("../webfonts/RictyDiminished-Regular.woff");
 /* fontawesomeの読み込み */
 //@import url("https://use.fontawesome.com/releases/v5.5.0/css/all.css");
+
+@font-face {
+  font-family: 'Noto Sans JP';
+  src: url('../webfonts/NotoSansJP-Regular.otf');
+}
+@font-face {
+  font-family: 'Ricty Diminished';
+  src: url('../webfonts/RictyDiminished-Regular.woff');
+}
 
 *,
 *::before,
@@ -80,8 +86,8 @@ select {
   width: 100%;
   font-size: 14pt;
   padding: 5px;
-  color: wheat;
-  background: #161b22;
+  color: white;
+  background: #11151b;
   border: 1px solid gray;
   &:focus {
     border: 1px solid blueviolet;
@@ -243,7 +249,7 @@ header {
     width: 100%;
     max-height: 510px;
     height: 100%;
-    background-color: #151a23;
+    background-color: #11151b;
     position: absolute;
     top: 50%;
     left: 50%;
@@ -271,6 +277,19 @@ header {
           border-left: unset;
           border-right: unset;
           color: white;
+        }
+        #ssh-profile-input-value-clear {
+          position: absolute;
+          top: 50%; right: 40px;
+          transform: translateY(-50%);
+          background-color: #453a4a;
+          border-top: unset;
+          border-left: unset;
+          border-right: unset;
+          color: white;
+          padding: 4px 15px;
+          font-size: 12pt;
+          cursor: pointer;
         }
       }
       .input-label {
@@ -324,7 +343,67 @@ header {
         font-size: 15pt;
         padding: 2px;
         background-color: darkviolet;
+        cursor: pointer;
       }
+    }
+  }
+}
+
+#ssh-profile-modal {
+  div.wrap {
+    max-width: 800px;
+    width: 100%;
+    max-height: 510px;
+    height: 100%;
+    background-color: #11151b;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 0 1em rgb(0, 23, 31);
+    border-radius: 10px;
+    padding: 20px;
+    .profile-list {
+      list-style: none;
+      margin-top: 20px;
+      max-height: 400px;
+      overflow-y: scroll;
+      @include flexbese( $ai:center, $jc:left );
+      li {
+        @include flexbese( $ai:center, $jc:left );
+        margin-bottom: 10px;
+        //border: 1px solid #4b346b;
+        h3 {
+          display: block;
+          width: 100%;
+          padding-bottom: 5px;
+          background-color: #4b346b;
+          font-weight: 400;
+        }
+        .value-box {
+          padding: 3px 0;
+          text-align: center;
+          label { padding-right: 10px; }
+          input {
+            border-left: unset;
+            border-right: unset;
+            border-top: unset;
+            &:disabled { text-align: center; }
+          }
+          button.profile-delete {
+            display: inline-block;
+            padding: 4px 15px;
+            font-size: 14pt;
+            background-color: #453a4a;
+            cursor: pointer;
+            color: white;
+          }
+        }
+      }
+    }
+    .modal-close {
+      position: absolute;
+      top: 20px; right: 20px;
     }
   }
 }
@@ -487,7 +566,7 @@ header {
     width: 100%;
     max-height: 500px;
     height: 100%;
-    background-color: #151a23;
+    background-color: #11151b;
     position: absolute;
     top: 50%;
     left: 50%;

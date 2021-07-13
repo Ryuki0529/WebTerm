@@ -100,6 +100,7 @@
         <select id="ssh-profile-select">
           <option value="none">保存済み接続情報を使用</option>
         </select>
+        <button id="ssh-profile-input-value-clear" aria-label="入力内容のクリア" title="入力内容のクリア">クリア</button>
       </div>
       <div class="column" style="flex-basis: 70%;">
         <label class="input-label" for="input-hostname">ホストアドレス</label>
@@ -141,10 +142,48 @@
         <label for="ssh-conn-profile-name" style="color:rgb(163, 163, 163)">接続情報の保存（プロファイル名を入力）</label>
         <input type="text" style="color:white;" id="ssh-conn-profile-name">
         <button id="save-ssh-conn-profile">保存</button>
-        <span style="color:rgb(163, 163, 163)">形式：英数字A～Za～z0～9,記号「_」のみ</span>
+        <span style="color:rgb(163, 163, 163)">形式：英数字A～Za～z0～9,記号「_」「-」のみ</span>
       </div>
     </div>
     <button data-target="ssh-conection-modal" aria-label="キャンセル" class="modal-close">X</button>
+  </div>
+</dialog>
+
+<dialog id="ssh-profile-modal">
+  <div class="wrap">
+    <h2>保存済みプロファイル</h2>
+    <ul class="profile-list"></ul>
+    <button data-target="ssh-profile-modal" title="閉じる" aria-label="閉じる" class="modal-close">X</button>
+    <li class="preset-element" hidden>
+      <h3 class="profile-name">Ubuntu</h3>
+      <div class="value-box" style="flex-basis:65%;">
+        <label class="host-address" for="">ホストアドレス</label>
+        <input class="host-address" style="width:70%;" type="text" disabled>
+      </div>
+      <div class="value-box" style="flex-basis:35%;">
+        <label class="port-number" for="">ポート番号</label>
+        <input class="port-number" style="width:64%;" type="number" disabled>
+      </div>
+      <div class="value-box" style="flex-basis:50%;">
+        <label class="user-name" for="">ユーザー名</label>
+        <input class="user-name" style="width:71%;" type="text" disabled>
+      </div>
+      <div class="value-box" style="flex-basis:50%;">
+        <label class="password" for="">パスワード</label>
+        <input class="password" style="width:75%;" type="password" disabled>
+      </div>
+      <div class="value-box" style="flex-basis:60%;" hidden>
+        <label class="keyfile" for="">キーファイル</label>
+        <input class="keyfile" style="width:71%;" type="text" disabled>
+      </div>
+      <div class="value-box" style="flex-basis:40%;" hidden>
+        <label class="passphrase" for="">パスフレーズ</label>
+        <input class="passphrase" style="width:63%;" type="password" disabled>
+      </div>
+      <div class="value-box" style="flex-basis:100%;padding-top:10px;">
+        <button class="profile-delete">削除</button>
+      </div>
+    </li>
   </div>
 </dialog>
 
