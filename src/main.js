@@ -33,7 +33,7 @@ class AppControl {
     //this.CONFIG.clear();
     // 初期設定情報の登録
     //console.log(app.getPath('userData'));
-    if (!this.CONFIG.size === 0) {
+    if ( this.CONFIG.size === 0 ) {
       this.CONFIG.store = {
         xterm: {
           rendererType: "canvas",
@@ -59,7 +59,7 @@ class AppControl {
       }
     }
 
-    if ( this.SSH_CONFIG.size === 0 ) {
+    /*if ( this.SSH_CONFIG.size === 0 ) {
       this.SSH_CONFIG.store = {
         "ubuntu": {
           host: "192.168.137.98", port: 22,
@@ -70,7 +70,7 @@ class AppControl {
           user: "ryuki", identityFile: "C:\\Users\\yamaz\\.ssh\\conoha-vps.pem"
         }
       }
-    }
+    }*/
 
     /*##############################################*/
     /*                 APPの設定                    */
@@ -105,15 +105,33 @@ class AppControl {
 
     ipcMain.on('text-to-speech', (event, arg) => { this.speekToText( arg ) });
 
-    ipcMain.on("get-file-path", (event, arg) => {
-      event.returnValue = dialog.showOpenDialogSync({
-        title: 'キーファイルの選択',
-        properties: ['openFile', 'showHiddenFiles', '']
-      });
+    ipcMain.on('speach-stop', () => { this.speechStop() });
+
+    ipcMain.on("get-file-path", (event, windowID) => {
+      event.returnValue = dialog.showOpenDialogSync(
+        this.Windows.get( Number( windowID ) ),
+        {
+          title: 'キーファイルの選択',
+          properties: ['openFile', 'showHiddenFiles', '']
+        }
+      );
     });
 
     ipcMain.on("reed-file", (event, arg) => {
       event.returnValue = (reedFileSync(arg)).toString('utf-8');
+    });
+
+    ipcMain.on('masagebox', ( event, arg ) => {
+      event.returnValue = dialog.showMessageBoxSync(
+        this.Windows.get( Number( arg.windowID ) ), arg.values
+      );
+    });
+
+    ipcMain.on('get-userdata-path', ( event, windowID ) => {
+      dialog.showMessageBoxSync(
+        this.Windows.get( Number( windowID ) ),
+        { title: 'USER DATA', message: app.getPath('userData') }
+      );
     });
 
     ipcMain.on("screen-keystroke", (event, data) => {
@@ -199,11 +217,6 @@ class AppControl {
 
     ipcMain.on('window-minimize', (event, arg) => {
       this.Windows.get(Number(arg)).minimize();
-    });
-
-    ipcMain.on('window-active-to-blur-to-active', ( event, windowID ) => {
-      (this.Windows.get( Number( windowID ) )).blur();
-      (this.Windows.get( Number( windowID ) )).focus();
     });
 
     ipcMain.on('app:quit', (event, arg) => {
@@ -328,8 +341,16 @@ class AppControl {
       this.PCTalker.SoundMessage(iconv.encode(text, 'CP932'), 0);
       //console.log('PC-Talker');
     } else if ((this.CONFIG.store).app.accessibility.screenReaderMode === 2) {
-      this.NVDA.nvdaController_speakText(iconv.encode(text, 'utf16'));
+      setTimeout(() => { this.NVDA.nvdaController_speakText(iconv.encode(text, 'utf16')) }, 10);
       //console.log('NVDA');
+    }
+  }
+
+  speechStop() {
+    if ((this.CONFIG.store).app.accessibility.screenReaderMode === 1) {
+      //this.PCTalker.SoundPause(true);
+    } else if ((this.CONFIG.store).app.accessibility.screenReaderMode === 2) {
+      this.NVDA.nvdaController_cancelSpeech();
     }
   }
 

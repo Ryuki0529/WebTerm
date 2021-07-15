@@ -51,7 +51,7 @@ class RendererMain {
 
     this.#ipcRenderer.on("shellprocess-incomingData", (event, arg) => {
       arg.buffer = this.#currentScreenType === 'ssh' ? (new TextDecoder).decode(arg.buffer) : arg.buffer;
-      if (this.#isSpeech === true) {
+      if ( this.#isSpeech === true ) {
         this.#ipcRenderer.send('text-to-speech', stripAnsi.unstyle(arg.buffer));
       }
       (this.#terminals.get(Number(arg.screenID))).write(this.#editBufferStream(arg.buffer));
@@ -184,7 +184,7 @@ class RendererMain {
     this.#sshConnectionModal.querySelector('#privateKey-choice')
       .addEventListener('click', event => {
         document.getElementById('input-privateKey')
-          .value = (this.#ipcRenderer.sendSync('get-file-path'))[0];
+          .value = (this.#ipcRenderer.sendSync('get-file-path', this.#windowID))[0];
       });
 
     this.#sshConnectionModal.querySelector('#ssh-profile-select')
@@ -223,34 +223,35 @@ class RendererMain {
 
     this.#sshConnectionModal.querySelector('#save-ssh-conn-profile')
       .addEventListener('click', (event) => {
-        if (confirm('入力した接続情報を保存しますか？')) {
+        if ( this.showConfirmMsgBox('入力した接続情報を保存しますか？') ) {
           const profileName = this.#sshConnectionModal.querySelector('#ssh-conn-profile-name').value;
           if (
             profileName.length !== 0 && profileName.length <= 20 &&
             profileName.match(/^[A-Za-z0-9_-]+$/)
           ) {
-            this.#CONFIG.sshConfig[profileName] = {}
-            this.#CONFIG.sshConfig[profileName].host = this.#sshConnectionModal.querySelector('#input-hostname').value;
-            this.#CONFIG.sshConfig[profileName].port = this.#sshConnectionModal.querySelector('#input-portnumber').value;
-            this.#CONFIG.sshConfig[profileName].user = this.#sshConnectionModal.querySelector('#input-username').value;
-            if (this.#sshConnectionModal.querySelector('#public-key-auth-change').checked) {
-              this.#CONFIG.sshConfig[profileName].identityFile = this.#sshConnectionModal.querySelector('#input-privateKey').value;
-              if (this.#sshConnectionModal.querySelector('#input-passphrase').value.length !== 0) {
-                this.#CONFIG.sshConfig[profileName].passphrase = this.#sshConnectionModal.querySelector('#input-passphrase').value;
-              }
-            } else this.#CONFIG.sshConfig[profileName].password = this.#sshConnectionModal.querySelector('#input-password').value;
-            this.#sshConnectionModal.querySelector('#ssh-conn-profile-name').value = '';
-            this.#configUpdate();
-            alert(`プロファイル名「${profileName}」で接続情報を保存しました。`);
-          } else alert('プロファイル名の形式が正しくありません。');
+            if (this.#CONFIG.sshConfig[profileName] === undefined) {
+              this.#CONFIG.sshConfig[profileName] = {}
+              this.#CONFIG.sshConfig[profileName].host = this.#sshConnectionModal.querySelector('#input-hostname').value;
+              this.#CONFIG.sshConfig[profileName].port = this.#sshConnectionModal.querySelector('#input-portnumber').value;
+              this.#CONFIG.sshConfig[profileName].user = this.#sshConnectionModal.querySelector('#input-username').value;
+              if (this.#sshConnectionModal.querySelector('#public-key-auth-change').checked) {
+                this.#CONFIG.sshConfig[profileName].identityFile = this.#sshConnectionModal.querySelector('#input-privateKey').value;
+                if (this.#sshConnectionModal.querySelector('#input-passphrase').value.length !== 0) {
+                  this.#CONFIG.sshConfig[profileName].passphrase = this.#sshConnectionModal.querySelector('#input-passphrase').value;
+                }
+              } else this.#CONFIG.sshConfig[profileName].password = this.#sshConnectionModal.querySelector('#input-password').value;
+              this.#sshConnectionModal.querySelector('#ssh-conn-profile-name').value = '';
+              this.#configUpdate();
+              this.showNormalMsgBox(`プロファイル名「${profileName}」で接続情報を保存しました。`);
+            } else this.showErrorMsgBox('同名のプロファイルが既に存在します。');
+          } else this.showErrorMsgBox('プロファイル名の形式が正しくありません。');
         }
-        this.#ipcRenderer.send('window-active-to-blur-to-active', this.#windowID);
       });
 
     this.#sshConnectionModal.querySelector('#ssh-profile-input-value-clear')
-      .addEventListener('click', ( e ) => {
+      .addEventListener('click', (e) => {
         this.#sshConnectionModal.querySelector('#public-key-auth-change').checked
-            ? this.#sshConnectionModal.querySelector('#public-key-auth-change').click() : null;
+          ? this.#sshConnectionModal.querySelector('#public-key-auth-change').click() : null;
         this.#sshConnectionModal.querySelector('#input-hostname').value = '';
         this.#sshConnectionModal.querySelector('#input-portnumber').value = '';
         this.#sshConnectionModal.querySelector('#input-username').value = '';
@@ -266,11 +267,17 @@ class RendererMain {
         //this.#sshClient = new (require('ssh2').Client);
         document.getElementById('try-connect-btn').removeAttribute('disabled');
       });
+
+    document.body.addEventListener('keypress', ( e ) => {
+      if ( e.ctrlKey && e.shiftKey && e.code === 'KeyU' ) {
+        this.#ipcRenderer.send('get-userdata-path', this.#windowID);
+      }
+    });
   }
 
   #editBufferStream(buffer) {
     if (this.#CONFIG.appConfig.app.accessibility.lsCommandView) {
-      let re = buffer.match(/[dl-]([r-][w-][xtsS-]){3}.\s+[0-9]+\s+\w+\s+\w+\s+[0-9]+\s+[^\n]+\n/g);
+      let re = buffer.match(/[dl-]([r-][w-][xtsS-]){3}(.|\s+)[0-9]+\s+\w+\s+\w+\s+[0-9]+\s+[^\n]+\n/g);
       if (re) {
         re.forEach(result => {
           if (result.match(/^d/)) {
@@ -289,17 +296,18 @@ class RendererMain {
   #getSshConnectionInfo() {
     return new Promise((resolve, reject) => {
       let sshConfig = {};
+      const profileSelect = this.#sshConnectionModal.querySelector('#ssh-profile-select');
 
-      this.#sshConnectionModal.querySelector('#ssh-profile-select')
-        .innerHTML = `<option value="none">保存済み接続情報を使用</option>`;
+      profileSelect.innerHTML = `<option value="none">保存済み接続情報を使用</option>`;
       for (let [key, value] of Object.entries(this.#CONFIG.sshConfig)) {
-        this.#sshConnectionModal.querySelector('#ssh-profile-select')
-          .innerHTML += `<option value="${key}">${key}</option>`;
+        profileSelect.innerHTML += `<option value="${key}">${key}</option>`;
       }
 
+      this.#sshConnectionModal.querySelector('#try-connect-btn').removeAttribute('disabled');
       this.#sshConnectionModal.showModal();
       this.#sshConnectionModal.querySelector('#try-connect-btn')
         .addEventListener('click', (e) => {
+          e.target.setAttribute('disabled', '');
           this.dialogClose(this.#sshConnectionModal);
           sshConfig.host = this.#sshConnectionModal.querySelector('#input-hostname').value;
           sshConfig.port = Number(this.#sshConnectionModal.querySelector('#input-portnumber').value);
@@ -308,11 +316,11 @@ class RendererMain {
             sshConfig.privateKey = this.#sshConnectionModal.querySelector('#input-privateKey').value;
             sshConfig.passphrase = this.#sshConnectionModal.querySelector('#input-passphrase').value;
           } else sshConfig.password = this.#sshConnectionModal.querySelector('#input-password').value;
-          resolve(sshConfig);
+          resolve({ sshConfig, profile: profileSelect.value !== 'none' ? profileSelect.value : false });
         });
       this.#sshConnectionModal.querySelector('.modal-close')
         .addEventListener('click', (e) => {
-          resolve(undefined);
+          resolve({ sshConfig: undefined, profile: false });
         });
     });
   }
@@ -338,13 +346,13 @@ class RendererMain {
       addEmen.querySelector('input.user-name').setAttribute('id', `ssh-profile-value-user-${key}`);
       addEmen.querySelector('label.user-name').setAttribute('for', `ssh-profile-value-user-${key}`);
 
-      if ( value.identityFile !== undefined ) {
+      if (value.identityFile !== undefined) {
         addEmen.querySelector('input.keyfile').value = value.identityFile;
         addEmen.querySelector('input.keyfile').setAttribute('id', `ssh-profile-value-keyfile-${key}`);
         addEmen.querySelector('label.keyfile').setAttribute('for', `ssh-profile-value-keyfile-${key}`);
         addEmen.querySelector('input.keyfile').parentElement.removeAttribute('hidden');
         addEmen.querySelector('input.password').parentElement.setAttribute('hidden', '');
-        if ( value.passphrase !== undefined ) {
+        if (value.passphrase !== undefined) {
           addEmen.querySelector('input.passphrase').value = value.passphrase;
           addEmen.querySelector('input.passphrase').setAttribute('id', `ssh-profile-value-passphrase-${key}`);
           addEmen.querySelector('label.passphrase').setAttribute('for', `ssh-profile-value-passphrase-${key}`);
@@ -357,14 +365,18 @@ class RendererMain {
       }
       addEmen.querySelector('.profile-delete').dataset.key = key;
       addEmen.querySelector('.profile-delete')
-        .addEventListener('click', ( e ) => {
-          if ( confirm(`プロファイル「${key}」を削除しますか？`) ) {
-            delete this.#CONFIG.sshConfig[ key ];
+        .addEventListener('click', (e) => {
+          if ( this.showConfirmMsgBox(`プロファイル「${key}」を削除しますか？`) ) {
+            delete this.#CONFIG.sshConfig[key];
             e.target.parentElement.parentElement.remove();
             this.#configUpdate();
           }
-          this.#ipcRenderer.send('window-active-to-blur-to-active', this.#windowID);
         });
+      this.#sshProfileModal.querySelector('.profile-list').appendChild(addEmen);
+    }
+    if ( Object.keys(this.#CONFIG.sshConfig).length === 0 ) {
+      const addEmen = document.createElement('li');
+      addEmen.innerHTML = `<span style="display:block;text-align:center;width: 100%;">現在プロファイルは登録されていません。</span>`;
       this.#sshProfileModal.querySelector('.profile-list').appendChild(addEmen);
     }
     this.#sshProfileModal.showModal();
@@ -372,10 +384,10 @@ class RendererMain {
 
   async #createTabSelection(mode = 'shell') {
 
-    let sshConfig = null;
+    let sshConfigResult = {}
     if (mode === 'ssh') {
-      sshConfig = await this.#getSshConnectionInfo();
-      if (sshConfig === undefined) {
+      sshConfigResult = await this.#getSshConnectionInfo();
+      if (sshConfigResult.sshConfig === undefined) {
         if (this.#tabNumber === 0) this.windowClose();
         return;
       }
@@ -422,8 +434,13 @@ class RendererMain {
       tabLavel.textContent = 'PowerShell #' + this.#tabNumber;
       closeBtn.setAttribute('aria-label', `PowerShell ${this.#tabNumber}のタブを閉じる`);
     } else if (mode === 'ssh') {
-      tabLavel.textContent = 'SSH #' + this.#tabNumber;
-      closeBtn.setAttribute('area-label', `SSH ${this.#tabNumber}のタブを閉じる`);
+      if ( sshConfigResult.profile === false ) {
+        tabLavel.innerHTML = '<span class="ssh">SSH</span> ' + sshConfigResult.sshConfig.host;
+        closeBtn.setAttribute('area-label', `SSH ${sshConfigResult.sshConfig.host}のタブを閉じる`);
+      } else {
+        tabLavel.innerHTML = '<span class="ssh">SSH</span> ' + sshConfigResult.profile
+        closeBtn.setAttribute('area-label', `SSH ${sshConfigResult.profile}のタブを閉じる`);
+      }
     }
     closeBtn.addEventListener('click', event => {
       let tabElem = event.target.parentElement;
@@ -470,7 +487,7 @@ class RendererMain {
     screen.setAttribute('data-number', this.#tabNumber);
     this.#commandResult.appendChild(screen);
 
-    this.#createTermInstance(this.#tabNumber, mode, sshConfig, inputRadio);
+    this.#createTermInstance(this.#tabNumber, mode, sshConfigResult.sshConfig, inputRadio);
 
     this.#currentScreenID = this.#tabNumber;
     this.#currentScreenType = mode;
@@ -539,23 +556,21 @@ class RendererMain {
       this.#screenKeyStrokeSend(event);
     });
 
-    /*(this.#terminals.get(screenID)).onLineFeed(() => {});*/
+    //(this.#terminals.get(screenID)).onRender(() => { this.#isSpeech = true });
 
     (this.#terminals.get(screenID)).onKey((e) => {
-      if (e.domEvent.code === 'Enter') {
-        this.#isSpeech = true;
-      } else if (e.domEvent.code === 'ArrowUp' || e.domEvent.code === 'ArrowDown') {
-        this.#isSpeech = true;
+      if (e.domEvent.code === 'ArrowUp' || e.domEvent.code === 'ArrowDown') {
         this.#ipcRenderer.send('text-to-speech', this.getCurrentBufferText());
       } else if (e.domEvent.code === 'ArrowRight') {
         this.#isSpeech = false;
         this.#ipcRenderer.send('text-to-speech', this.getCurrentBufferText());
+        setTimeout(() => { this.#isSpeech = true; }, 10);
       } else if (e.domEvent.code === 'ArrowLeft' || e.domEvent.code === 'Backspace') {
         this.#isSpeech = false;
         this.#ipcRenderer.send('text-to-speech', this.getCurrentBufferText(this.#currentScreenID, true));
-      } else {
-        this.#isSpeech = false;
+        setTimeout(() => { this.#isSpeech = true; }, 10);
       }
+      this.#ipcRenderer.send('speach-stop');
     });
   }
 
@@ -631,6 +646,29 @@ class RendererMain {
     this.#ipcRenderer.send('app-config-updated', {
       windowID: this.#windowID, config: this.#CONFIG
     });
+  }
+
+  showConfirmMsgBox( message ) {
+    return this.#showNativeMsgBoxSync({
+      title: `確認メッセージ`, message,
+      type: 'question', buttons: [ 'OK', 'Cancel' ]
+    }) === 0 ? true : false;
+  }
+
+  showErrorMsgBox( message ) {
+    this.#showNativeMsgBoxSync({
+      title: `エラーメッセージ`, message, type: 'error'
+    });
+  }
+
+  showNormalMsgBox( message ) {
+    this.#showNativeMsgBoxSync({
+      title: `メッセージ`, message, type: 'none'
+    });
+  }
+
+  #showNativeMsgBoxSync( values ) {
+    return this.#ipcRenderer.sendSync('masagebox', { windowID: this.#windowID, values });
   }
 
   dialogClose(dialog) {

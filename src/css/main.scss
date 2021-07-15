@@ -3,12 +3,12 @@
 //@import url("https://use.fontawesome.com/releases/v5.5.0/css/all.css");
 
 @font-face {
-  font-family: 'Noto Sans JP';
-  src: url('../webfonts/NotoSansJP-Regular.otf');
+  font-family: "Noto Sans JP";
+  src: url("../webfonts/NotoSansJP-Regular.otf");
 }
 @font-face {
-  font-family: 'Ricty Diminished';
-  src: url('../webfonts/RictyDiminished-Regular.woff');
+  font-family: "Ricty Diminished";
+  src: url("../webfonts/RictyDiminished-Regular.woff");
 }
 
 *,
@@ -32,13 +32,14 @@ body {
 }
 
 ::-webkit-scrollbar {
-  width: 10px;
+  width: 7px;
 }
 ::-webkit-scrollbar-track {
   background: rgba(255, 255, 255, 0);
   border: none;
   border-radius: 10px;
   box-shadow: inset 0 0 2px #777;
+  display: none;
 }
 ::-webkit-scrollbar-thumb {
   background: rgb(65, 65, 65);
@@ -259,7 +260,8 @@ header {
     padding: 20px;
     .modal-close {
       position: absolute;
-      top: 20px; right: 20px;
+      top: 20px;
+      right: 20px;
     }
     div.line {
       @include flexbese;
@@ -270,7 +272,8 @@ header {
         position: relative;
         #ssh-profile-select {
           position: absolute;
-          top: 50%; left: 0;
+          top: 50%;
+          left: 0;
           transform: translateY(-50%);
           width: 250px;
           border-top: unset;
@@ -280,7 +283,8 @@ header {
         }
         #ssh-profile-input-value-clear {
           position: absolute;
-          top: 50%; right: 40px;
+          top: 50%;
+          right: 40px;
           transform: translateY(-50%);
           background-color: #453a4a;
           border-top: unset;
@@ -368,9 +372,9 @@ header {
       margin-top: 20px;
       max-height: 400px;
       overflow-y: scroll;
-      @include flexbese( $ai:center, $jc:left );
+      @include flexbese($ai: center, $jc: left);
       li {
-        @include flexbese( $ai:center, $jc:left );
+        @include flexbese($ai: center, $jc: left);
         margin-bottom: 10px;
         //border: 1px solid #4b346b;
         h3 {
@@ -383,12 +387,16 @@ header {
         .value-box {
           padding: 3px 0;
           text-align: center;
-          label { padding-right: 10px; }
+          label {
+            padding-right: 10px;
+          }
           input {
             border-left: unset;
             border-right: unset;
             border-top: unset;
-            &:disabled { text-align: center; }
+            &:disabled {
+              text-align: center;
+            }
           }
           button.profile-delete {
             display: inline-block;
@@ -403,7 +411,8 @@ header {
     }
     .modal-close {
       position: absolute;
-      top: 20px; right: 20px;
+      top: 20px;
+      right: 20px;
     }
   }
 }
@@ -465,6 +474,8 @@ header {
         display: inline-block;
         //min-width: 150px;
         position: relative;
+        border-right: 1px solid #464646;
+        border-top: 1px solid #464646;
         input[type="radio"] {
           position: absolute;
           top: 0;
@@ -484,11 +495,19 @@ header {
           min-width: 150px;
           padding: 5px;
           padding-left: 10px;
-          padding-right: 20px;
+          padding-right: 32px;
           border-bottom: 2px solid #161b22;
           background-color: #161b22;
           height: calc(100% - 2px);
           transition: all 0.4s;
+          .ssh {
+            background-color: #dadada;
+            color: #000;
+            border-radius: 6px;
+            padding: 0 5px;
+            margin-right: 4px;
+            font-size: 10pt;
+          }
         }
         input[type="radio"]:checked + label {
           border-bottom: 2px solid orange;
@@ -601,7 +620,8 @@ header {
               display: block;
               position: absolute;
               width: 100%;
-              top: 50%; left: 50%;
+              top: 50%;
+              left: 50%;
               transform: translate(-50%, -50%);
             }
           }
@@ -615,7 +635,8 @@ header {
               height: 100%;
               input[type="checkbox"] {
                 position: absolute;
-                top: 50%; left: 50%;
+                top: 50%;
+                left: 50%;
                 width: 70px;
                 height: 30px;
                 opacity: 0;
@@ -635,21 +656,23 @@ header {
                 height: 30px;
                 border: 1px solid gray;
                 border-radius: 30px;
-                top: 50%; left: 50%;
+                top: 50%;
+                left: 50%;
                 transform: translate(-50%, -50%);
-                transition: background-color .2s ease-in-out;
+                transition: background-color 0.2s ease-in-out;
                 z-index: 0;
                 &::after {
-                  content: '';
+                  content: "";
                   display: block;
                   position: absolute;
                   background-color: white;
                   border-radius: 100%;
                   width: 20px;
                   height: 20px;
-                  top: 50%; left: 50%;
+                  top: 50%;
+                  left: 50%;
                   transform: translate(-144%, -50%);
-                  transition: transform .2s ease-in-out;
+                  transition: transform 0.2s ease-in-out;
                   z-index: 1;
                 }
               }
@@ -675,8 +698,8 @@ header {
             border-bottom: 2px dotted gray;
           }
           .input.radio {
-            flex-basis:100%;
-            text-align:center;
+            flex-basis: 100%;
+            text-align: center;
             .radiobox {
               display: inline-block;
               position: relative;
@@ -684,7 +707,8 @@ header {
           }
           .input.radio input {
             position: absolute;
-            top: 0; left: 0;
+            top: 0;
+            left: 0;
             opacity: 0;
             width: 100%;
             height: 100%;
