@@ -341,7 +341,8 @@ class AppControl {
       this.PCTalker.SoundMessage(iconv.encode(text, 'CP932'), 0);
       //console.log('PC-Talker');
     } else if ((this.CONFIG.store).app.accessibility.screenReaderMode === 2) {
-      setTimeout(() => { this.NVDA.nvdaController_speakText(iconv.encode(text, 'utf16')) }, 10);
+      //setTimeout(() => { this.NVDA.nvdaController_speakText(iconv.encode(text, 'utf16')) }, 50);
+      this.NVDA.nvdaController_speakText(iconv.encode(text, 'utf16'));
       //console.log('NVDA');
     }
   }
@@ -350,7 +351,8 @@ class AppControl {
     if ((this.CONFIG.store).app.accessibility.screenReaderMode === 1) {
       //this.PCTalker.SoundPause(true);
     } else if ((this.CONFIG.store).app.accessibility.screenReaderMode === 2) {
-      this.NVDA.nvdaController_cancelSpeech();
+      //setTimeout(() => { this.NVDA.nvdaController_cancelSpeech() }, 40);
+      //this.NVDA.nvdaController_cancelSpeech();
     }
   }
 

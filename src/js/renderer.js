@@ -51,9 +51,12 @@ class RendererMain {
 
     this.#ipcRenderer.on("shellprocess-incomingData", (event, arg) => {
       arg.buffer = this.#currentScreenType === 'ssh' ? (new TextDecoder).decode(arg.buffer) : arg.buffer;
-      if ( this.#isSpeech === true ) {
-        this.#ipcRenderer.send('text-to-speech', stripAnsi.unstyle(arg.buffer));
-      }
+      if ( arg.buffer.match('\n') ) this.#isSpeech = true;
+      setTimeout(() => {
+        if ( this.#isSpeech === true ) {
+          this.#ipcRenderer.send('text-to-speech', stripAnsi.unstyle(arg.buffer));
+        }
+      }, 200);
       (this.#terminals.get(Number(arg.screenID))).write(this.#editBufferStream(arg.buffer));
     });
 
@@ -534,12 +537,12 @@ class RendererMain {
           this.#terminals.forEach((value, key) => {
             value.setOption('screenReaderMode', false);
           }); this.#virtualCursorMode.status = false;
-          this.#ipcRenderer.send('text-to-speech', 'スクリーンカーソルモードOFF');
+          this.speakToText('スクリーンカーソルモードOFF');
         } else if (!this.#virtualCursorMode.status && !this.#virtualCursorMode.bagFlag) {
           this.#terminals.forEach((value, key) => {
             value.setOption('screenReaderMode', true);
           }); this.#virtualCursorMode.status = true;
-          this.#ipcRenderer.send('text-to-speech', 'スクリーンカーソルモードON');
+          this.speakToText('スクリーンカーソルモードON');
         } else if (!this.#virtualCursorMode.bagFlag) {
           this.#virtualCursorMode.bagFlag = true;
         } else if (this.#virtualCursorMode.bagFlag) {
@@ -549,6 +552,14 @@ class RendererMain {
       } else if (e.key === 'Insert') {
         (this.#terminals.get(screenID)).blur();
         return false;
+      } else if ( e.key === 'N' && e.ctrlKey && e.shiftKey ) {
+        this.#CONFIG.appConfig.app.accessibility.screenReaderMode = 2;
+        this.#configUpdate(); this.speakToText('スクリーンリーダーモードON NVDA');
+        return false;
+      } else if ( e.key === 'P' && e.ctrlKey && e.shiftKey ) {
+        this.#CONFIG.appConfig.app.accessibility.screenReaderMode = 1;
+        this.#configUpdate(); this.speakToText('スクリーンリーダーモードON PC-Talker');
+        return false;
       }
     });
 
@@ -556,21 +567,20 @@ class RendererMain {
       this.#screenKeyStrokeSend(event);
     });
 
-    //(this.#terminals.get(screenID)).onRender(() => { this.#isSpeech = true });
+    //(this.#terminals.get(screenID)).onRender(( e ) => { console.log(e) });
 
     (this.#terminals.get(screenID)).onKey((e) => {
-      if (e.domEvent.code === 'ArrowUp' || e.domEvent.code === 'ArrowDown') {
+      if (
+        e.domEvent.code === 'ArrowUp' || e.domEvent.code === 'ArrowDown'
+        || e.domEvent.code === 'Tab'
+      ) {
+        this.#isSpeech = true;
         this.#ipcRenderer.send('text-to-speech', this.getCurrentBufferText());
       } else if (e.domEvent.code === 'ArrowRight') {
-        this.#isSpeech = false;
         this.#ipcRenderer.send('text-to-speech', this.getCurrentBufferText());
-        setTimeout(() => { this.#isSpeech = true; }, 10);
       } else if (e.domEvent.code === 'ArrowLeft' || e.domEvent.code === 'Backspace') {
-        this.#isSpeech = false;
         this.#ipcRenderer.send('text-to-speech', this.getCurrentBufferText(this.#currentScreenID, true));
-        setTimeout(() => { this.#isSpeech = true; }, 10);
-      }
-      this.#ipcRenderer.send('speach-stop');
+      } else this.#isSpeech = false;
     });
   }
 
@@ -669,6 +679,10 @@ class RendererMain {
 
   #showNativeMsgBoxSync( values ) {
     return this.#ipcRenderer.sendSync('masagebox', { windowID: this.#windowID, values });
+  }
+
+  speakToText( text ) {
+    this.#ipcRenderer.send('text-to-speech', text);
   }
 
   dialogClose(dialog) {
