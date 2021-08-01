@@ -26,13 +26,17 @@ class RendererMain {
 
   #CONFIG;
   #terminals = new Map();
+  #jumpPoints = {}
+  #currentJumpingIndex = 0;
   #fitAdons = new Map();
   #webLinksAddon = new Map();
   #tabNumber = 0;
   #currentScreenID = 0;
   #currentScreenType = '';
   #isSpeech = true;
-  #virtualCursorMode = { bagFlag: false, status: false }
+  #currentCursorPosition = { x: 0, y: 0 }
+  #currentInputString = { text: '', pos: 0 };
+  #virtualCursorMode = { bagFlag: true, status: true }
 
   constructor() {
 
@@ -50,14 +54,14 @@ class RendererMain {
     });
 
     this.#ipcRenderer.on("shellprocess-incomingData", (event, arg) => {
-      arg.buffer = this.#currentScreenType === 'ssh' ? (new TextDecoder).decode(arg.buffer) : arg.buffer;
-      if ( arg.buffer.match('\n') ) this.#isSpeech = true;
+      let buffer = this.#currentScreenType === 'ssh' ? (new TextDecoder).decode(arg.buffer) : arg.buffer;
+      if (buffer.match('\n')) this.#isSpeech = true;
       setTimeout(() => {
-        if ( this.#isSpeech === true ) {
-          this.#ipcRenderer.send('text-to-speech', stripAnsi.unstyle(arg.buffer));
+        if (this.#isSpeech === true) {
+          this.#ipcRenderer.send('text-to-speech', stripAnsi.unstyle(buffer));
         }
       }, 200);
-      (this.#terminals.get(Number(arg.screenID))).write(this.#editBufferStream(arg.buffer));
+      (this.#terminals.get(Number(arg.screenID))).write(this.#editBufferStream(buffer));
     });
 
     this.#screenSelections.addEventListener('wheel', event => {
@@ -226,7 +230,7 @@ class RendererMain {
 
     this.#sshConnectionModal.querySelector('#save-ssh-conn-profile')
       .addEventListener('click', (event) => {
-        if ( this.showConfirmMsgBox('入力した接続情報を保存しますか？') ) {
+        if (this.showConfirmMsgBox('入力した接続情報を保存しますか？')) {
           const profileName = this.#sshConnectionModal.querySelector('#ssh-conn-profile-name').value;
           if (
             profileName.length !== 0 && profileName.length <= 20 &&
@@ -271,8 +275,8 @@ class RendererMain {
         document.getElementById('try-connect-btn').removeAttribute('disabled');
       });
 
-    document.body.addEventListener('keypress', ( e ) => {
-      if ( e.ctrlKey && e.shiftKey && e.code === 'KeyU' ) {
+    document.body.addEventListener('keypress', (e) => {
+      if (e.ctrlKey && e.shiftKey && e.code === 'KeyU') {
         this.#ipcRenderer.send('get-userdata-path', this.#windowID);
       }
     });
@@ -369,7 +373,7 @@ class RendererMain {
       addEmen.querySelector('.profile-delete').dataset.key = key;
       addEmen.querySelector('.profile-delete')
         .addEventListener('click', (e) => {
-          if ( this.showConfirmMsgBox(`プロファイル「${key}」を削除しますか？`) ) {
+          if (this.showConfirmMsgBox(`プロファイル「${key}」を削除しますか？`)) {
             delete this.#CONFIG.sshConfig[key];
             e.target.parentElement.parentElement.remove();
             this.#configUpdate();
@@ -377,7 +381,7 @@ class RendererMain {
         });
       this.#sshProfileModal.querySelector('.profile-list').appendChild(addEmen);
     }
-    if ( Object.keys(this.#CONFIG.sshConfig).length === 0 ) {
+    if (Object.keys(this.#CONFIG.sshConfig).length === 0) {
       const addEmen = document.createElement('li');
       addEmen.innerHTML = `<span style="display:block;text-align:center;width: 100%;">現在プロファイルは登録されていません。</span>`;
       this.#sshProfileModal.querySelector('.profile-list').appendChild(addEmen);
@@ -437,7 +441,7 @@ class RendererMain {
       tabLavel.textContent = 'PowerShell #' + this.#tabNumber;
       closeBtn.setAttribute('aria-label', `PowerShell ${this.#tabNumber}のタブを閉じる`);
     } else if (mode === 'ssh') {
-      if ( sshConfigResult.profile === false ) {
+      if (sshConfigResult.profile === false) {
         tabLavel.innerHTML = '<span class="ssh">SSH</span> ' + sshConfigResult.sshConfig.host;
         closeBtn.setAttribute('area-label', `SSH ${sshConfigResult.sshConfig.host}のタブを閉じる`);
       } else {
@@ -452,6 +456,8 @@ class RendererMain {
       this.#terminals.delete(delScreenID);
       this.#fitAdons.delete(delScreenID);
       this.#webLinksAddon.delete(delScreenID);
+      delete this.#jumpPoints[ delScreenID ];
+      this.#currentJumpingIndex = 0;
 
       this.#ipcRenderer.send('screenprocess-exit', {
         window: this.#windowID, screenID: delScreenID, mode: this.#currentScreenType
@@ -498,6 +504,10 @@ class RendererMain {
 
   #createTermInstance(screenID, mode, sshConfig, targetTab) {
 
+    const helperElemString = `.screen[data-number="${screenID}"] .xterm-helper-textarea`;
+    const accessibilityElemString = `.screen[data-number="${screenID}"] .xterm-accessibility`;
+    const ariaLiveElemString = `.screen[data-number="${screenID}"] .live-region`;
+
     this.#terminals.set(screenID, new Terminal(this.#CONFIG.appConfig.xterm));
     this.#fitAdons.set(screenID, new TerminalFitAddon());
     this.#webLinksAddon.set(screenID,
@@ -505,6 +515,9 @@ class RendererMain {
         event.preventDefault(); window.open(url);
       })
     );
+
+    this.#jumpPoints[ screenID ] = { lineNumbers: [], hist: {} };
+
     (this.#terminals.get(screenID)).loadAddon(this.#fitAdons.get(screenID));
     (this.#terminals.get(screenID)).loadAddon(this.#webLinksAddon.get(screenID));
     (this.#terminals.get(screenID)).open(this.#commandResult.lastElementChild);
@@ -542,6 +555,10 @@ class RendererMain {
           this.#terminals.forEach((value, key) => {
             value.setOption('screenReaderMode', true);
           }); this.#virtualCursorMode.status = true;
+          (document.querySelectorAll('.live-region')).forEach(( elem ) => {
+            elem.setAttribute('style', 'display:none;');
+          });
+          this.#xtermAccessibilityElemEdit( screenID, accessibilityElemString );
           this.speakToText('スクリーンカーソルモードON');
         } else if (!this.#virtualCursorMode.bagFlag) {
           this.#virtualCursorMode.bagFlag = true;
@@ -552,11 +569,18 @@ class RendererMain {
       } else if (e.key === 'Insert') {
         (this.#terminals.get(screenID)).blur();
         return false;
-      } else if ( e.key === 'N' && e.ctrlKey && e.shiftKey ) {
+      } else if (e.key === 'Enter') {
+        if ( this.#currentInputString.text !== '' ) {
+          this.#jumpPoints[ screenID ][ 'lineNumbers' ].unshift( this.#currentCursorPosition.y );
+          this.#jumpPoints[ screenID ][ 'hist' ][ this.#currentCursorPosition.y ] = this.#currentInputString.text;
+          this.#jumpPoints[ screenID ][ 'lineNumbers' ] = Array.from( new Set( this.#jumpPoints[ screenID ][ 'lineNumbers' ] ) );
+        }
+        //console.log(this.#jumpPoints);
+      } else if (e.key === 'N' && e.ctrlKey && e.shiftKey) {
         this.#CONFIG.appConfig.app.accessibility.screenReaderMode = 2;
         this.#configUpdate(); this.speakToText('スクリーンリーダーモードON NVDA');
         return false;
-      } else if ( e.key === 'P' && e.ctrlKey && e.shiftKey ) {
+      } else if (e.key === 'P' && e.ctrlKey && e.shiftKey) {
         this.#CONFIG.appConfig.app.accessibility.screenReaderMode = 1;
         this.#configUpdate(); this.speakToText('スクリーンリーダーモードON PC-Talker');
         return false;
@@ -565,22 +589,79 @@ class RendererMain {
 
     (this.#terminals.get(screenID)).onData(event => {
       this.#screenKeyStrokeSend(event);
+      //console.log(event.charCodeAt(0).toString(16));
     });
 
-    //(this.#terminals.get(screenID)).onRender(( e ) => { console.log(e) });
+    (this.#terminals.get(screenID)).textarea.addEventListener('keydown', (e) => {
+      setTimeout(() => {
+        this.#currentInputString.text = e.target.value;
+        this.#currentInputString.pos = e.target.selectionStart;
+        e.target.selectionEnd;
+      }, 60);
+    });
+
+    (this.#terminals.get(screenID)).textarea.addEventListener('focus', (e) => {
+      e.target.value = this.#currentInputString.text;
+      e.target.selectionStart = this.#currentInputString.pos;
+      e.target.selectionEnd = this.#currentInputString.pos;
+      this.#currentJumpingIndex = 0;
+    });
+
+    (this.#terminals.get(screenID)).textarea.addEventListener('blur', (e) => {
+      let tabIndex = (this.#terminals.get(screenID)).buffer.active.cursorY;
+      tabIndex += (this.#terminals.get(screenID)).buffer.active.baseY + 1;
+      document.querySelector(`.screen[data-number="${screenID}"] div[role="listitem"][aria-posinset="${tabIndex}"]`).focus();
+    });
+
+    (this.#terminals.get(screenID)).onLineFeed(() => {
+      setTimeout(() => {
+        let cursorY = (this.#terminals.get(screenID)).buffer.active.baseY;
+        cursorY += (this.#terminals.get(screenID)).buffer.active.cursorY;
+        let cursorX = (this.#terminals.get(screenID)).buffer.active.cursorX;
+        this.#currentCursorPosition.x = cursorX;
+        this.#currentCursorPosition.y = cursorY;
+      }, 300);
+    });
 
     (this.#terminals.get(screenID)).onKey((e) => {
       if (
         e.domEvent.code === 'ArrowUp' || e.domEvent.code === 'ArrowDown'
         || e.domEvent.code === 'Tab'
       ) {
-        this.#isSpeech = true;
-        this.#ipcRenderer.send('text-to-speech', this.getCurrentBufferText());
+        this.#isSpeech = false;
+        (this.#terminals.get(screenID)).blur();
+        (this.#terminals.get(screenID)).focus();
+        setTimeout(() => {
+          this.speakToText(this.getCurrentCommandInput());
+          document.querySelector(helperElemString).value = this.getCurrentCommandInput();
+        }, 50)
       } else if (e.domEvent.code === 'ArrowRight') {
-        this.#ipcRenderer.send('text-to-speech', this.getCurrentBufferText());
-      } else if (e.domEvent.code === 'ArrowLeft' || e.domEvent.code === 'Backspace') {
-        this.#ipcRenderer.send('text-to-speech', this.getCurrentBufferText(this.#currentScreenID, true));
-      } else this.#isSpeech = false;
+        this.#isSpeech = false;
+      } else if (e.domEvent.code === 'ArrowLeft') {
+        this.#isSpeech = false;
+      } else { this.#isSpeech = false; }
+    });
+
+    document.querySelector( ariaLiveElemString ).setAttribute('style', 'display:none;');
+
+    this.#xtermAccessibilityElemEdit( screenID, accessibilityElemString );
+  }
+
+  #xtermAccessibilityElemEdit( screenID, elem ) {
+    document.querySelector( elem ).addEventListener('keyup', ( e ) => {
+      if ( e.key === 'ArrowUp' && this.#jumpPoints[ screenID ].lineNumbers.length !== 0 ) {
+        //console.log( this.#jumpPoints[ screenID ].lineNumbers[ this.#currentJumpingIndex ] );
+        this.scrollBufferLine( this.#jumpPoints[ screenID ].lineNumbers[ this.#currentJumpingIndex ] );
+        this.#ipcRenderer.send('speach-stop');
+        this.speakToText( 'jump ' + this.#jumpPoints[ screenID ].hist[ this.#jumpPoints[ screenID ].lineNumbers[ this.#currentJumpingIndex ] ] );
+        if ( this.#jumpPoints[ screenID ].lineNumbers[ this.#currentJumpingIndex + 1 ] !== undefined ) this.#currentJumpingIndex += 1;
+      } else if ( e.key === 'ArrowDown' && this.#jumpPoints[ screenID ].lineNumbers.length !== 0 ) {
+        //console.log( this.#jumpPoints[ screenID ].lineNumbers[ this.#currentJumpingIndex ] );
+        this.scrollBufferLine( this.#jumpPoints[ screenID ].lineNumbers[ this.#currentJumpingIndex ] );
+        this.#ipcRenderer.send('speach-stop');
+        this.speakToText( 'jump ' + this.#jumpPoints[ screenID ].hist[ this.#jumpPoints[ screenID ].lineNumbers[ this.#currentJumpingIndex ] ] );
+        if ( this.#jumpPoints[ screenID ].lineNumbers[ this.#currentJumpingIndex - 1 ] !== undefined ) this.#currentJumpingIndex -= 1;
+      }
     });
   }
 
@@ -633,6 +714,13 @@ class RendererMain {
     (this.#terminals.get(this.#currentScreenID)).focus();
   }
 
+  getCurrentCommandInput() {
+    return (this.#terminals.get(this.#currentScreenID)).buffer.active
+      .getLine(this.#currentCursorPosition.y).translateToString(true,
+        this.#currentCursorPosition.x
+      );
+  }
+
   getCurrentBufferText(screenID = this.#currentScreenID, shift = false) {
     let cursorY = (this.#terminals.get(screenID)).buffer.active.baseY;
     cursorY += (this.#terminals.get(screenID)).buffer.active.cursorY;
@@ -648,8 +736,15 @@ class RendererMain {
     return this.#terminals.get(this.#currentScreenID).getOption(key);
   }
 
-  scrollPagesTerm(screenID, number) {
-    (this.#terminals.get(screenID)).scrollPages(number);
+  scrollBufferLine(number, screenID=this.#currentScreenID) {
+    (this.#terminals.get(screenID)).scrollToLine(number - 1);
+    setTimeout(() => {
+      document.querySelector(`.screen[data-number="${screenID}"] div[role="listitem"][aria-posinset="${number + 1}"]`).focus();
+    }, 50);
+  }
+
+  termPasteText(text, screenID = this.#currentScreenID) {
+    (this.#terminals.get(screenID)).paste(text);
   }
 
   #configUpdate() {
@@ -658,30 +753,34 @@ class RendererMain {
     });
   }
 
-  showConfirmMsgBox( message ) {
+  showConfirmMsgBox(message) {
     return this.#showNativeMsgBoxSync({
       title: `確認メッセージ`, message,
-      type: 'question', buttons: [ 'OK', 'Cancel' ]
+      type: 'question', buttons: ['OK', 'Cancel']
     }) === 0 ? true : false;
   }
 
-  showErrorMsgBox( message ) {
+  #sendKeyStroke(text) {
+    this.#ipcRenderer.send('send-keystroke', text);
+  }
+
+  showErrorMsgBox(message) {
     this.#showNativeMsgBoxSync({
       title: `エラーメッセージ`, message, type: 'error'
     });
   }
 
-  showNormalMsgBox( message ) {
+  showNormalMsgBox(message) {
     this.#showNativeMsgBoxSync({
       title: `メッセージ`, message, type: 'none'
     });
   }
 
-  #showNativeMsgBoxSync( values ) {
+  #showNativeMsgBoxSync(values) {
     return this.#ipcRenderer.sendSync('masagebox', { windowID: this.#windowID, values });
   }
 
-  speakToText( text ) {
+  speakToText(text) {
     this.#ipcRenderer.send('text-to-speech', text);
   }
 

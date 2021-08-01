@@ -1,6 +1,6 @@
 {
   "name": "webterm",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "A terminal that runs on a browser engine.",
   "main": "src/main.js",
   "scripts": {
@@ -8,6 +8,7 @@
     "start": "electron .",
     "electron-rebuild": "node_modules/.bin/electron-rebuild.cmd",
     "build-win": "node_modules/.bin/electron-builder --win --x64",
+    "build-appx": "electron-builder -w --x64 && electron-windows-store --input-directory .\\dist\\win-unpacked --output-directory .\\dist --package-name WebTerm --package-display-name WebTerm --package-version 1.0.1.0 --publisher-display-name Lhaplu:Log --identity-name 36443LhapluLog.WebTerm",
     "build-linux": "node_modules/.bin/electron-builder --linux --x64",
     "build-mac": "node_modules/.bin/electron-builder --mac --x64"
   },
@@ -18,7 +19,8 @@
     "electron": "^13.1.1",
     "electron-builder": "^22.10.5",
     "electron-rebuild": "^2.3.5",
-    "electron-tools": "^2.4.2"
+    "electron-tools": "^2.4.2",
+    "electron-windows-store": "^2.1.0"
   },
   "dependencies": {
     "ansi-colors": "^4.1.1",
@@ -27,8 +29,8 @@
     "ffi-napi": "^4.0.3",
     "iconv-lite": "^0.6.3",
     "node-pty": "^0.10.1",
-    "ref-napi": "^3.0.3",
     "ref-wchar-napi": "^1.0.3",
+    "sqlite3": "^5.0.2",
     "ssh2": "^1.1.0",
     "xterm": "^4.13.0",
     "xterm-addon-fit": "^0.5.0",
@@ -38,20 +40,37 @@
     "productName": "WebTerm",
     "appId": "com.electron.ssh-client",
     "directories": {
-      "output": "dist"
+      "output": "dist",
+      "buildResources": "assets"
     },
     "files": [
+      "assets",
       "src",
       "package.json",
       "package-lock.json"
     ],
-    "extraFiles": [ "nvdaControl.dll", "PCTKUSR.dll" ],
+    "extraFiles": [
+      "nvdaControl.dll",
+      "PCTKUSR.dll"
+    ],
+    "appx": {
+      "identityName": "36443LhapluLog.WebTerm",
+      "applicationId": "LhapluLog.WebTerm",
+      "publisherDisplayName": "Lhaplu:Log",
+      "publisher": "CN=CEBD1DA5-A40A-4B88-9D6B-86B3FE07C8B4",
+      "languages": [
+        "JA-JP"
+      ]
+    },
     "mac": {
       "target": "dmg"
     },
     "win": {
-      "target": "nsis",
-      "icon": "app-icon.ico"
+      "target": [
+        "appx",
+        "nsis"
+      ],
+      "icon": "assets/app-icon.ico"
     },
     "linux": {
       "target": "AppImage"

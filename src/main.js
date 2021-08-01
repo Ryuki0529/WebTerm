@@ -5,9 +5,9 @@ const { Client: SshClient, Server: SshServer } = require('ssh2');
 const { app, BrowserWindow, ipcMain, dialog, clipboard, shell } = require('electron');
 const Store = require('electron-store');
 const ffi = require('ffi-napi');
-const ref = require('ref-napi');
 const ref_wchar = require('ref-wchar-napi');
 const iconv = require("iconv-lite");
+//const sqlLite = require('sqlite3');
 
 const APP_NAME = "WebTerm";
 const HOME_PATH = process.env[process.platform === "win32" ? "USERPROFILE" : "HOME"];
@@ -37,9 +37,9 @@ class AppControl {
       this.CONFIG.store = {
         xterm: {
           rendererType: "canvas",
-          cursorBlink: true,
+          cursorBlink: false,
           fontSize: 22, //fontFamily: 'Ricty Diminished, Noto Sans JP, Meiryo',
-          screenReaderMode: false,
+          screenReaderMode: true,
           rightClickSelectsWord: true,
           drawBoldTextInBrightColors: true,
           macOptionClickForcesSelection: true,
@@ -58,6 +58,15 @@ class AppControl {
         }
       }
     }
+
+    /*let db = new sqlLite.Database('db.sql');
+    db.serialize(() => {
+      db.run(`create table if not exists test (
+        account text primary key,
+        name text,
+        email text
+      )`)
+    })*/
 
     /*if ( this.SSH_CONFIG.size === 0 ) {
       this.SSH_CONFIG.store = {
@@ -315,6 +324,12 @@ class AppControl {
               "shellprocess-incomingData",
               { buffer: data, screenID }
             );
+          }).on('close', () => {
+            conn.destroy();
+            (this.Windows.get(windowID)).webContents.send(
+              "screenprocess-finished", screenID
+            );
+            (this.Terminals.get(windowID)).delete(screenID);
           });
 
           stream.setWindow(rows, cols);
@@ -349,7 +364,7 @@ class AppControl {
 
   speechStop() {
     if ((this.CONFIG.store).app.accessibility.screenReaderMode === 1) {
-      //this.PCTalker.SoundPause(true);
+      this.PCTalker.SoundPause(true);
     } else if ((this.CONFIG.store).app.accessibility.screenReaderMode === 2) {
       //setTimeout(() => { this.NVDA.nvdaController_cancelSpeech() }, 40);
       //this.NVDA.nvdaController_cancelSpeech();
