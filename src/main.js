@@ -126,6 +126,23 @@ class AppControl {
       );
     });
 
+    ipcMain.on('save-file', ( event, arg ) => {
+      let savePath = dialog.showSaveDialogSync(
+        this.Windows.get( Number( arg.windowID ) ),
+        {
+          title: 'ファイル保存ダイアログ',
+          properties: ['openFile', 'createDirectory'],
+          filters: [
+              { name: 'テキストファイル', extensions: ['txt'] },
+              { name: 'すべてのファイル', extensions: ['*'] }
+          ]
+        }
+      );
+      if ( savePath !== undefined ) {
+        fs.writeFileSync( savePath, arg.saveText );
+      }
+    });
+
     ipcMain.on("reed-file", (event, arg) => {
       event.returnValue = (reedFileSync(arg)).toString('utf-8');
     });
@@ -324,6 +341,7 @@ class AppControl {
               "shellprocess-incomingData",
               { buffer: data, screenID }
             );
+            //fs.writeFile('log.txt', iconv.encode(data, 'utf8'), { flag: 'a' }, () => {});
           }).on('close', () => {
             conn.destroy();
             (this.Windows.get(windowID)).webContents.send(
@@ -352,6 +370,7 @@ class AppControl {
   }
 
   speekToText( text ) {
+    //console.log( text );
     if ((this.CONFIG.store).app.accessibility.screenReaderMode === 1) {
       this.PCTalker.SoundMessage(iconv.encode(text, 'CP932'), 0);
       //console.log('PC-Talker');

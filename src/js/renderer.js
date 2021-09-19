@@ -61,6 +61,7 @@ class RendererMain {
           this.#ipcRenderer.send('text-to-speech', stripAnsi.unstyle(buffer));
         }
       }, 200);
+      console.log(buffer);
       (this.#terminals.get(Number(arg.screenID))).write(this.#editBufferStream(buffer));
     });
 
@@ -323,6 +324,8 @@ class RendererMain {
             sshConfig.privateKey = this.#sshConnectionModal.querySelector('#input-privateKey').value;
             sshConfig.passphrase = this.#sshConnectionModal.querySelector('#input-passphrase').value;
           } else sshConfig.password = this.#sshConnectionModal.querySelector('#input-password').value;
+          sshConfig.keepaliveInterval = 20000;
+          sshConfig.readyTimeout = 10000;
           resolve({ sshConfig, profile: profileSelect.value !== 'none' ? profileSelect.value : false });
         });
       this.#sshConnectionModal.querySelector('.modal-close')
@@ -536,6 +539,7 @@ class RendererMain {
 
     window.addEventListener('resize', () => { this.#screenTermResize() });
 
+    let editorMode = { bugfleg: false, status: false };
     (this.#terminals.get(screenID)).attachCustomKeyEventHandler(e => {
       if (e.ctrlKey && e.key === 'c') {
         if ((this.#terminals.get(screenID)).hasSelection()) {
@@ -576,6 +580,12 @@ class RendererMain {
           this.#jumpPoints[ screenID ][ 'lineNumbers' ] = Array.from( new Set( this.#jumpPoints[ screenID ][ 'lineNumbers' ] ) );
         }
         //console.log(this.#jumpPoints);
+      } else if ( e.key === 'H' && e.ctrlKey && e.shiftKey ) {
+        let saveText = this.getBufferText(
+          this.#jumpPoints[ screenID ][ 'lineNumbers' ][0],
+          this.#currentCursorPosition.y
+        );
+        this.#ipcRenderer.send( 'save-file', { windowID: this.#windowID, saveText } );
       } else if (e.key === 'N' && e.ctrlKey && e.shiftKey) {
         this.#CONFIG.appConfig.app.accessibility.screenReaderMode = 2;
         this.#configUpdate(); this.speakToText('スクリーンリーダーモードON NVDA');
@@ -584,6 +594,19 @@ class RendererMain {
         this.#CONFIG.appConfig.app.accessibility.screenReaderMode = 1;
         this.#configUpdate(); this.speakToText('スクリーンリーダーモードON PC-Talker');
         return false;
+      } else if ( e.key === 'E' && e.ctrlKey && e.shiftKey ) {
+        if ( editorMode.status && editorMode.bugflag ) {
+          this.speakToText('screen editor mode stop.');
+          editorMode.status = false;
+        } else if ( !editorMode.status && !editorMode.bugflag ) {
+          this.speakToText('screen editor mode start.');
+          editorMode.status = true;
+        } else if ( !editorMode.bugflag ) {
+          editorMode.bugflag = true;
+        } else if ( editorMode.bugflag ) {
+          editorMode.bugflag = false;
+          document.querySelector(helperElemString).value = '';
+        }
       }
     });
 
@@ -632,9 +655,27 @@ class RendererMain {
         (this.#terminals.get(screenID)).blur();
         (this.#terminals.get(screenID)).focus();
         setTimeout(() => {
-          this.speakToText(this.getCurrentCommandInput());
-          document.querySelector(helperElemString).value = this.getCurrentCommandInput();
-        }, 50)
+          if ( !editorMode.status ) {
+            document.querySelector(helperElemString).value = this.getCurrentCommandInput();
+            this.speakToText(this.getCurrentCommandInput());
+          } else {
+            let text = (this.getCurrentBufferText()).replace(/\s{8}/, '\t');
+            let tabCount = ( text.match( /\t/ ) || [] ).length;
+            let cursorX = (this.#terminals.get(screenID)).buffer.active.cursorX;
+            let helperElem = document.querySelector(helperElemString);
+            helperElem.value = text;
+            if ( tabCount > 0 ) {
+              console.log('count.');
+              for ( let i=0;i<tabCount;i++ ) {
+                cursorX -= 7;
+              }
+            }
+            helperElem.selectionStart = cursorX;
+            helperElem.selectionEnd = cursorX;
+            this.speakToText( text );
+            console.log( helperElem.value );
+          }
+        }, 100)
       } else if (e.domEvent.code === 'ArrowRight') {
         this.#isSpeech = false;
       } else if (e.domEvent.code === 'ArrowLeft') {
@@ -649,13 +690,13 @@ class RendererMain {
 
   #xtermAccessibilityElemEdit( screenID, elem ) {
     document.querySelector( elem ).addEventListener('keyup', ( e ) => {
-      if ( e.key === 'ArrowUp' && this.#jumpPoints[ screenID ].lineNumbers.length !== 0 ) {
+      if ( e.key === '9' && this.#jumpPoints[ screenID ].lineNumbers.length !== 0 ) {
         //console.log( this.#jumpPoints[ screenID ].lineNumbers[ this.#currentJumpingIndex ] );
         this.scrollBufferLine( this.#jumpPoints[ screenID ].lineNumbers[ this.#currentJumpingIndex ] );
         this.#ipcRenderer.send('speach-stop');
         this.speakToText( 'jump ' + this.#jumpPoints[ screenID ].hist[ this.#jumpPoints[ screenID ].lineNumbers[ this.#currentJumpingIndex ] ] );
         if ( this.#jumpPoints[ screenID ].lineNumbers[ this.#currentJumpingIndex + 1 ] !== undefined ) this.#currentJumpingIndex += 1;
-      } else if ( e.key === 'ArrowDown' && this.#jumpPoints[ screenID ].lineNumbers.length !== 0 ) {
+      } else if ( e.key === '0' && this.#jumpPoints[ screenID ].lineNumbers.length !== 0 ) {
         //console.log( this.#jumpPoints[ screenID ].lineNumbers[ this.#currentJumpingIndex ] );
         this.scrollBufferLine( this.#jumpPoints[ screenID ].lineNumbers[ this.#currentJumpingIndex ] );
         this.#ipcRenderer.send('speach-stop');
@@ -721,15 +762,19 @@ class RendererMain {
       );
   }
 
-  getCurrentBufferText(screenID = this.#currentScreenID, shift = false) {
+  getBufferText( startY, endY, screenID = this.#currentScreenID ) {
+    let handleText = "";
+    for ( let i=startY;i<endY;i++ ) {
+      handleText += (this.#terminals.get(screenID)).buffer.active.getLine(i).translateToString(true) + '\n';
+    }
+    return handleText;
+  }
+
+  getCurrentBufferText(screenID = this.#currentScreenID) {
     let cursorY = (this.#terminals.get(screenID)).buffer.active.baseY;
     cursorY += (this.#terminals.get(screenID)).buffer.active.cursorY;
-    let cursorX = (this.#terminals.get(screenID)).buffer.active.cursorX;
-    return (this.#terminals.get(screenID)).buffer.active
-      .getLine(cursorY).translateToString(true,
-        shift === true ? cursorX - 1 : cursorX + 1,
-        shift === true ? cursorX : cursorX + 2
-      );
+    //let cursorX = (this.#terminals.get(screenID)).buffer.active.cursorX;
+    return (this.#terminals.get(screenID)).buffer.active.getLine(cursorY).translateToString(true);
   }
 
   getTermOption(key) {

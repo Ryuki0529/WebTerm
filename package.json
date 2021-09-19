@@ -24,7 +24,6 @@
   },
   "dependencies": {
     "ansi-colors": "^4.1.1",
-    "ansi-to-html": "^0.6.15",
     "electron-store": "^8.0.0",
     "ffi-napi": "^4.0.3",
     "iconv-lite": "^0.6.3",
@@ -39,12 +38,12 @@
   "build": {
     "productName": "WebTerm",
     "appId": "com.electron.ssh-client",
+    "compression": "maximum",
     "directories": {
       "output": "dist",
       "buildResources": "assets"
     },
     "files": [
-      "assets",
       "src",
       "package.json",
       "package-lock.json"
