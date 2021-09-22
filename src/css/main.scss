@@ -614,12 +614,15 @@ header {
       }
       .setting-items {
         @include flexbese($jc: left);
+        padding: 0 10px;
         .item {
-          flex-basis: 50%;
+          flex-basis: 100%;
+          background-color: #0e0e0e;
+          border-bottom: 1px solid #505050;
           @include flexbese($jc: left);
           .label {
-            flex-basis: 50%;
-            text-align: center;
+            flex-basis: 70%;
+            text-align: left;
             font-size: 13pt;
             padding: 5px;
             position: relative;
@@ -629,11 +632,16 @@ header {
               width: 100%;
               top: 50%;
               left: 50%;
+              padding: 0 10px;
               transform: translate(-50%, -50%);
             }
           }
+          .label.switch {
+            padding: 30px 0;
+            label { padding: 0 20px }
+          }
           .input {
-            flex-basis: 50%;
+            flex-basis: 30%;
             padding: 5px;
             div.checkbox {
               position: relative;
@@ -702,11 +710,22 @@ header {
             width: 100%;
             padding: 5px 10px;
             border: unset;
-            border-bottom: 2px dotted gray;
+            //border-bottom: 2px dotted gray;
+            @include flexbese;
+            legend {
+              position: absolute;
+              opacity: 0;
+              padding-inline-start: unset;
+              padding-inline-end: unset;
+              border-width: unset;
+              border-style: unset;
+              border-color: unset;
+              border-image: unset;
+            }
           }
           .input.radio {
-            flex-basis: 100%;
-            text-align: center;
+            flex-basis: 30%;
+            text-align: right;
             .radiobox {
               display: inline-block;
               position: relative;
@@ -719,6 +738,7 @@ header {
             opacity: 0;
             width: 100%;
             height: 100%;
+            cursor: pointer;
             &:checked + label {
               background-color: darkviolet;
               color: white;
@@ -727,8 +747,8 @@ header {
           .input.radio input + label {
             display: inline-block;
             padding: 3px 10px;
-            background-color: whitesmoke;
-            color: black;
+            background-color: #242c38;
+            color: #ababab;
           }
         }
       }

@@ -40,10 +40,11 @@
       </div>
       <h3>アプリケーションの設定</h3>
       <div class="setting-items">
-        <div class="item" style="flex-basis:50%;">
+        <div class="item">
           <fieldset id="set-startup-terminal-mode">
             <legend>起動時のターミナルモード</legend>
-            <div class="input radio">
+            <div class="label" style="flex-basis:60%;"><label>起動時のターミナルモード</label></div>
+            <div class="input radio" style="flex-basis:40%;">
               <div class="radiobox">
                 <input type="radio" value="shell" name="set-startup-terminal-mode" id="set-stm-shell" value="0">
                 <label for="set-stm-shell">PowerShell</label>
@@ -58,10 +59,11 @@
       </div>
       <h3>アクセシビリティーの設定</h3>
       <div class="setting-items">
-        <div class="item" style="flex-basis:50%;">
+        <div class="item">
           <fieldset id="set-screen-reader-mode">
             <legend>スクリーンリーダーモード</legend>
-            <div class="input radio">
+            <div class="label" style="flex-basis:60%;"><label>スクリーンリーダーモード</label></div>
+            <div class="input radio" style="flex-basis:40%;">
               <div class="radiobox">
                 <input type="radio" name="input-srm" id="set-srm-none" value="0">
                 <label for="set-srm-none">OFF</label>
@@ -77,8 +79,16 @@
             </div>
           </fieldset>
         </div>
-        <div class="item" style="flex-basis:50%;">
-          <div class="label"><label for="set-ls-comand-effect">lsコマンドの視覚効果</label></div>
+        <div class="item">
+          <div class="label switch"><label for="set-screen-cursor-mode">スクリーンカーソルモード</label></div>
+          <div class="input">
+            <div class="checkbox">
+              <input type="checkbox" id="set-screen-cursor-mode"><label></label>
+            </div>
+          </div>
+        </div>
+        <div class="item">
+          <div class="label switch"><label for="set-ls-comand-effect">lsコマンドの視覚効果</label></div>
           <div class="input">
             <div class="checkbox">
               <input type="checkbox" id="set-ls-comand-effect"><label></label>

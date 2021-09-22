@@ -30,13 +30,14 @@ class RendererMain {
   #currentJumpingIndex = 0;
   #fitAdons = new Map();
   #webLinksAddon = new Map();
+  #terminalsConfFlag = {};
   #tabNumber = 0;
   #currentScreenID = 0;
   #currentScreenType = '';
   #isSpeech = true;
-  #currentCursorPosition = { x: 0, y: 0 }
+  #currentCursorPosition = { x: 0, y: 0 };
   #currentInputString = { text: '', pos: 0 };
-  #virtualCursorMode = { bagFlag: true, status: true }
+  #virtualCursorMode = { bagFlag: true, status: true };
 
   constructor() {
 
@@ -57,11 +58,10 @@ class RendererMain {
       let buffer = this.#currentScreenType === 'ssh' ? (new TextDecoder).decode(arg.buffer) : arg.buffer;
       if (buffer.match('\n')) this.#isSpeech = true;
       setTimeout(() => {
-        if (this.#isSpeech === true) {
+        if (this.#isSpeech && this.#terminalsConfFlag[arg.screenID].isSpeech) {
           this.#ipcRenderer.send('text-to-speech', stripAnsi.unstyle(buffer));
         }
-      }, 200);
-      console.log(buffer);
+      }, 150);
       (this.#terminals.get(Number(arg.screenID))).write(this.#editBufferStream(buffer));
     });
 
@@ -139,9 +139,11 @@ class RendererMain {
         default:
           this.#settingModalElem.querySelector('#set-stm-shell').click(); break;
       }
+      if (this.#CONFIG.appConfig.app.accessibility.screenCursorMode) {
+        this.#settingModalElem.querySelector('#set-screen-cursor-mode').setAttribute('checked', '');
+      }
       if (this.#CONFIG.appConfig.app.accessibility.lsCommandView) {
-        this.#settingModalElem.querySelector('#set-ls-comand-effect')
-          .setAttribute('checked', '');
+        this.#settingModalElem.querySelector('#set-ls-comand-effect').setAttribute('checked', '');
       }
       this.#settingModalElem.showModal();
     });
@@ -151,8 +153,10 @@ class RendererMain {
         this.#CONFIG.appConfig.xterm.fontSize = this.#settingModalElem.querySelector('#set-term-fontsize').value;
         this.#CONFIG.appConfig.xterm.theme.foreground = this.#settingModalElem.querySelector('#set-term-fontcolor').value;
         this.#CONFIG.appConfig.xterm.theme.background = this.#settingModalElem.querySelector('#set-term-bg-color').value;
+        this.#CONFIG.appConfig.xterm.screenReaderMode = this.#settingModalElem.querySelector('#set-screen-cursor-mode').checked;
         this.#CONFIG.appConfig.app.accessibility.screenReaderMode = Number(this.#settingModalElem.querySelector('#set-screen-reader-mode input[type="radio"]:checked').value);
         this.#CONFIG.appConfig.app.startUpTerminalMode = this.#settingModalElem.querySelector('#set-startup-terminal-mode input[type="radio"]:checked').value;
+        this.#CONFIG.appConfig.app.accessibility.screenCursorMode = this.#settingModalElem.querySelector('#set-screen-cursor-mode').checked;
         this.#CONFIG.appConfig.app.accessibility.lsCommandView = this.#settingModalElem.querySelector('#set-ls-comand-effect').checked;
 
         this.#settingModalElem.querySelector('.modal-close').click();
@@ -434,6 +438,11 @@ class RendererMain {
             .replace('px', ''));*/
       //(this.#terminals.get(Number(selectScreen))).focus();
     });
+    inputRadio.addEventListener('keypress', ( e ) => {
+      if ( e.key === 'Enter' ) {
+        (this.#terminals.get(Number(e.target.value))).focus();
+      }
+    });
     inputRadio.checked = true;
     let tabLavel = document.createElement('label');
     tabLavel.setAttribute('for', "screen-label-" + this.#tabNumber);
@@ -459,6 +468,7 @@ class RendererMain {
       this.#terminals.delete(delScreenID);
       this.#fitAdons.delete(delScreenID);
       this.#webLinksAddon.delete(delScreenID);
+      delete this.#terminalsConfFlag[ delScreenID ];
       delete this.#jumpPoints[ delScreenID ];
       this.#currentJumpingIndex = 0;
 
@@ -511,6 +521,8 @@ class RendererMain {
     const accessibilityElemString = `.screen[data-number="${screenID}"] .xterm-accessibility`;
     const ariaLiveElemString = `.screen[data-number="${screenID}"] .live-region`;
 
+    this.#terminalsConfFlag[screenID] = { isSpeech: true, bugflag: true };
+
     this.#terminals.set(screenID, new Terminal(this.#CONFIG.appConfig.xterm));
     this.#fitAdons.set(screenID, new TerminalFitAddon());
     this.#webLinksAddon.set(screenID,
@@ -550,20 +562,22 @@ class RendererMain {
         this.#screenKeyStrokeSend(this.#ipcRenderer.on('clipboard-read'));
         return false;
       } else if (e.ctrlKey && e.key === 'b') {
-        if (this.#virtualCursorMode.status && this.#virtualCursorMode.bagFlag) {
+        if (this.#CONFIG.appConfig.app.accessibility.screenCursorMode && this.#virtualCursorMode.bagFlag) {
           this.#terminals.forEach((value, key) => {
             value.setOption('screenReaderMode', false);
-          }); this.#virtualCursorMode.status = false;
-          this.speakToText('スクリーンカーソルモードOFF');
-        } else if (!this.#virtualCursorMode.status && !this.#virtualCursorMode.bagFlag) {
+          }); this.#CONFIG.appConfig.app.accessibility.screenCursorMode = false;
+          this.#CONFIG.appConfig.xterm.screenReaderMode = false;
+          this.speakToText('スクリーンカーソルモードOFF'); this.#configUpdate();
+        } else if (!this.#CONFIG.appConfig.app.accessibility.screenCursorMode && !this.#virtualCursorMode.bagFlag) {
           this.#terminals.forEach((value, key) => {
             value.setOption('screenReaderMode', true);
-          }); this.#virtualCursorMode.status = true;
+          }); this.#CONFIG.appConfig.app.accessibility.screenCursorMode = true;
+          this.#CONFIG.appConfig.xterm.screenReaderMode = true;
           (document.querySelectorAll('.live-region')).forEach(( elem ) => {
             elem.setAttribute('style', 'display:none;');
           });
           this.#xtermAccessibilityElemEdit( screenID, accessibilityElemString );
-          this.speakToText('スクリーンカーソルモードON');
+          this.speakToText('スクリーンカーソルモードON'); this.#configUpdate();
         } else if (!this.#virtualCursorMode.bagFlag) {
           this.#virtualCursorMode.bagFlag = true;
         } else if (this.#virtualCursorMode.bagFlag) {
@@ -594,6 +608,18 @@ class RendererMain {
         this.#CONFIG.appConfig.app.accessibility.screenReaderMode = 1;
         this.#configUpdate(); this.speakToText('スクリーンリーダーモードON PC-Talker');
         return false;
+      } else if ( e.key === 'O' && e.ctrlKey && e.shiftKey ) {
+        if ( this.#terminalsConfFlag[screenID].isSpeech === true && this.#terminalsConfFlag[screenID].bugflag === true ) {
+          this.#terminalsConfFlag[screenID].isSpeech = false; this.speakToText('カレントスクリーンスピーチOFF');
+          console.log(this.#terminalsConfFlag);
+        } else if ( this.#terminalsConfFlag[screenID].isSpeech === false && this.#terminalsConfFlag[screenID].bugflag === false ) {
+          this.#terminalsConfFlag[screenID].isSpeech = true; this.speakToText('カレントスクリーンスピーチON');
+          console.log(this.#terminalsConfFlag);
+        } else if ( this.#terminalsConfFlag[screenID].bugflag === true ) {
+          this.#terminalsConfFlag[screenID].bugflag = false;
+        } else if ( this.#terminalsConfFlag[screenID].bugflag === false ) {
+          this.#terminalsConfFlag[screenID].bugflag = true;
+        }
       } else if ( e.key === 'E' && e.ctrlKey && e.shiftKey ) {
         if ( editorMode.status && editorMode.bugflag ) {
           this.speakToText('screen editor mode stop.');
@@ -651,10 +677,11 @@ class RendererMain {
         e.domEvent.code === 'ArrowUp' || e.domEvent.code === 'ArrowDown'
         || e.domEvent.code === 'Tab'
       ) {
-        this.#isSpeech = false;
-        (this.#terminals.get(screenID)).blur();
-        (this.#terminals.get(screenID)).focus();
+        //this.#ipcRenderer.send('speach-stop');
+        //(this.#terminals.get(screenID)).blur();
+        //(this.#terminals.get(screenID)).focus();
         setTimeout(() => {
+          this.#isSpeech = false;
           if ( !editorMode.status ) {
             document.querySelector(helperElemString).value = this.getCurrentCommandInput();
             this.speakToText(this.getCurrentCommandInput());
@@ -665,7 +692,7 @@ class RendererMain {
             let helperElem = document.querySelector(helperElemString);
             helperElem.value = text;
             if ( tabCount > 0 ) {
-              console.log('count.');
+              //console.log('count.');
               for ( let i=0;i<tabCount;i++ ) {
                 cursorX -= 7;
               }
@@ -673,9 +700,9 @@ class RendererMain {
             helperElem.selectionStart = cursorX;
             helperElem.selectionEnd = cursorX;
             this.speakToText( text );
-            console.log( helperElem.value );
+            //console.log( helperElem.value );
           }
-        }, 100)
+        }, 100);
       } else if (e.domEvent.code === 'ArrowRight') {
         this.#isSpeech = false;
       } else if (e.domEvent.code === 'ArrowLeft') {
@@ -726,11 +753,16 @@ class RendererMain {
   #refreshTermScreen(screenID = this.#currentScreenID) {
     const ITheme = {
       background: this.#CONFIG.appConfig.xterm.theme.background,
-      foreground: this.#CONFIG.appConfig.xterm.theme.foreground
+      foreground: this.#CONFIG.appConfig.xterm.theme.foreground,
     };
 
     (this.#terminals.get(screenID)).setOption('fontSize', this.#CONFIG.appConfig.xterm.fontSize);
     (this.#terminals.get(screenID)).setOption('theme', ITheme);
+
+    this.#terminals.forEach((value, key) => {
+      value.setOption('screenReaderMode', this.#CONFIG.appConfig.xterm.screenReaderMode);
+    });
+
     this.#screenTermResize();
     this.#setWindowTitle();
   }
@@ -868,7 +900,9 @@ function sleep(time) {
   });
 }
 
-loadElement('./dom/dialogbox.html').then((dom) => {
-  document.body.innerHTML += dom;
-  window.braws = new RendererMain();
+window.addEventListener('load', e => {
+  loadElement('./dom/dialogbox.html').then((dom) => {
+    document.body.innerHTML += dom;
+    window.braws = new RendererMain();
+  });
 });

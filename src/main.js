@@ -37,7 +37,7 @@ class AppControl {
       this.CONFIG.store = {
         xterm: {
           rendererType: "canvas",
-          cursorBlink: false,
+          cursorBlink: true,
           fontSize: 22, //fontFamily: 'Ricty Diminished, Noto Sans JP, Meiryo',
           screenReaderMode: true,
           rightClickSelectsWord: true,
@@ -45,6 +45,7 @@ class AppControl {
           macOptionClickForcesSelection: true,
           macOptionIsMeta: true, windowsMode: true,
           minimumContrastRatio: 7,
+          windowsMode: true,
           theme: {
             background: "black", foreground: "white"
           }
@@ -52,6 +53,7 @@ class AppControl {
         app: {
           accessibility: {
             screenReaderMode: 0,
+            screenCursorMode: true,
             lsCommandView: false
           },
           startUpTerminalMode: "shell"
@@ -114,7 +116,7 @@ class AppControl {
 
     ipcMain.on('text-to-speech', (event, arg) => { this.speekToText( arg ) });
 
-    ipcMain.on('speach-stop', () => { this.speechStop() });
+    ipcMain.on('speech-stop', () => { this.speechStop() });
 
     ipcMain.on("get-file-path", (event, windowID) => {
       event.returnValue = dialog.showOpenDialogSync(
@@ -265,6 +267,7 @@ class AppControl {
       webPreferences: {
         nodeIntegration: true,
         contextIsolation: false,
+        devTools: !app.isPackaged
         //webviewTag: true,
         //preload: __dirname + '/window.difine.js'
       },

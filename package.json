@@ -10,43 +10,61 @@
     "build-win": "node_modules/.bin/electron-builder --win --x64",
     "build-appx": "electron-builder -w --x64 && electron-windows-store --input-directory .\\dist\\win-unpacked --output-directory .\\dist --package-name WebTerm --package-display-name WebTerm --package-version 1.0.1.0 --publisher-display-name Lhaplu:Log --identity-name 36443LhapluLog.WebTerm",
     "build-linux": "node_modules/.bin/electron-builder --linux --x64",
-    "build-mac": "node_modules/.bin/electron-builder --mac --x64"
+    "build-mac": "node_modules/.bin/electron-builder --mac --x64",
+    "webpack": "webpack"
   },
   "keywords": [],
   "author": "Yamazaki Ryuki",
   "license": "ISC",
   "devDependencies": {
+    "ansi-colors": "^4.1.1",
+    "css-loader": "^6.3.0",
     "electron": "^13.1.1",
     "electron-builder": "^22.10.5",
     "electron-rebuild": "^2.3.5",
     "electron-tools": "^2.4.2",
-    "electron-windows-store": "^2.1.0"
+    "electron-windows-store": "^2.1.0",
+    "html-minifier": "^4.0.0",
+    "javascript-obfuscator": "^2.19.0",
+    "node-loader": "^2.0.0",
+    "sass": "^1.41.1",
+    "sass-loader": "^12.1.0",
+    "style-loader": "^3.2.1",
+    "webpack": "^5.53.0",
+    "webpack-cli": "^4.8.0",
+    "webpack-obfuscator": "^3.4.1",
+    "xterm": "^4.13.0",
+    "xterm-addon-fit": "^0.5.0",
+    "xterm-addon-web-links": "^0.4.0"
   },
   "dependencies": {
-    "ansi-colors": "^4.1.1",
     "electron-store": "^8.0.0",
     "ffi-napi": "^4.0.3",
     "iconv-lite": "^0.6.3",
     "node-pty": "^0.10.1",
     "ref-wchar-napi": "^1.0.3",
     "sqlite3": "^5.0.2",
-    "ssh2": "^1.1.0",
-    "xterm": "^4.13.0",
-    "xterm-addon-fit": "^0.5.0",
-    "xterm-addon-web-links": "^0.4.0"
+    "ssh2": "^1.1.0"
   },
   "build": {
     "productName": "WebTerm",
     "appId": "com.electron.ssh-client",
     "compression": "maximum",
+    "asar": true,
     "directories": {
       "output": "dist",
       "buildResources": "assets"
     },
     "files": [
-      "src",
-      "package.json",
-      "package-lock.json"
+      "!src",
+      "!package.json",
+      "src/js/bundle.js",
+      "src/index.html",
+      "src/30ac0ac10cb239a9c3b9.otf",
+      "src/68c5af1f48e2bfca1e57.woff2",
+      "src/ada6e6df937f7e5e8b79.woff2",
+      "src/main.min.js",
+      "src/dom"
     ],
     "extraFiles": [
       "nvdaControl.dll",
@@ -66,7 +84,6 @@
     },
     "win": {
       "target": [
-        "appx",
         "nsis"
       ],
       "icon": "assets/app-icon.ico"
