@@ -186,7 +186,7 @@ header {
   height: 25px;
   font-size: 12pt;
   -webkit-app-region: drag;
-  background: #161b22;
+  background: #1f252b;
   span.app-name {
     padding: 3px;
     height: 100%;
@@ -221,7 +221,7 @@ header {
   #window-maximize,
   #window-minimize {
     height: 100%;
-    padding: 3px 12px;
+    padding: 3px 16px;
     float: right;
     color: white;
     -webkit-app-region: no-drag;
@@ -232,7 +232,7 @@ header {
   }
   #window-close {
     height: 100%;
-    padding: 3px 12px;
+    padding: 3px 16px;
     float: right;
     color: white;
     -webkit-app-region: no-drag;
@@ -464,7 +464,7 @@ header {
     width: 100%;
     #screen-tabs {
       height: 100%;
-      max-width: calc(100% - 320px);
+      max-width: calc(100% - 325px);
       overflow: hidden;
       white-space: nowrap;
       /*&::-webkit-scrollbar,
@@ -525,15 +525,16 @@ header {
     .add-tab-block {
       padding: 0 10px;
       @include flexbese($ai: center, $jc: left);
-      width: 320px;
+      width: 325px;
       //transform: translateY(-20px);
       .button-wrap {
+        position: relative;
         border-radius: 20px;
-        border: 1px solid whitesmoke;
+        border: 2px solid #525252;
         margin: 0 5px;
-        overflow: hidden;
+        //overflow: hidden;
         button {
-          border-radius: unset;
+          border-radius: 20px;
           margin: 0;
           border: 0;
           transform: translateY(0px);
@@ -551,6 +552,75 @@ header {
         border-radius: 20px;
         transform: translateY(8%);
         cursor: pointer;
+      }
+      #add-shell-tab {
+        padding-right: 33px;
+      }
+      #add-shell-selection {
+        position: absolute;
+        top: 5px;
+        right: 11px;
+        font-size: 16pt;
+        cursor: pointer;
+        z-index: 100;
+      }
+      #add-shell-selection-content {
+        position: absolute;
+        top: 38px;
+        right: 0;
+        width: 230px;
+        background-color: #1a1f24;
+        border-radius: 10px;
+        box-shadow: 0px 0px 15px -5px #ffffff;
+        font-size: 16px;
+        opacity: 0;
+        visibility: hidden;
+        z-index: 100;
+        transform: translate(50px, -50px) scale(0.5);
+        transition: all 0.4s ease-out;
+        fieldset {
+          position: relative;
+          border: unset;
+          padding: 10px;
+          legend {
+            position: absolute;
+            top: 0;
+            left: 0;
+            transform: scale(0);
+            opacity: 0;
+          }
+          .select-radio {
+            display: block;
+            position: relative;
+            border-top: 1px dotted #585858;
+            input[type="radio"] {
+              position: absolute;
+              top: 0;
+              left: 0;
+              opacity: 0;
+              width: 100%;
+              height: 100%;
+              cursor: pointer;
+              &:checked + label, &:hover + label {
+                background-color: orange;
+                color: black;
+              }
+            }
+            input[type="radio"] + label {
+              display: block;
+              padding: 3px 10px;
+              background-color: #1f262f;
+              color: #ababab;
+              width: 100%;
+              text-align: center;
+            }
+          }
+        }
+      }
+      #add-shell-selection-content.show {
+        opacity: 1;
+        visibility: visible;
+        transform: translate(0, 0) scale(1);
       }
     }
   }
@@ -638,7 +708,9 @@ header {
           }
           .label.switch {
             padding: 30px 0;
-            label { padding: 0 20px }
+            label {
+              padding: 0 20px;
+            }
           }
           .input {
             flex-basis: 30%;
@@ -749,6 +821,8 @@ header {
             padding: 3px 10px;
             background-color: #242c38;
             color: #ababab;
+            width: 100%;
+            text-align: center;
           }
         }
       }

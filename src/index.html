@@ -23,31 +23,46 @@
   </header>
   <div class="session-group">
     <div class="screen-selections">
-      <div id="screen-tabs">
-        <!--<div class="tab">
-          <input type="radio" name="screen-name" id="screen-label-1">
-          <label for="screen-label-1">SSH - Ubuntu</label>
-          <button title="タブを閉じる" class="screen-close">X</button>
-        </div>-->
-      </div>
+      <div id="screen-tabs"></div>
       <div class="add-tab-block">
         <div class="button-wrap">
-          <button data-type="shell" aria-label="新しいPowerShellを開く" title="新しいPowerShellを開く" class="add-tab-btn">＋ Shell</button>
+          <button id="add-shell-tab" data-type="PowerShell-dev" aria-label="新しいShellを開く" title="新しいShellを開く" class="add-tab-btn">＋ Shell</button>
+          <button id="add-shell-selection" aria-label="シェルタイプの選択"><i class="fas fa-angle-down"></i></button>
+          <div id="add-shell-selection-content">
+            <fieldset>
+              <legend>＋Shellボタンを押した時に開くシェルの選択</legend>
+              <div class="select-radio" style="border:unset;">
+                <input type="radio" value="cmd" name="add-shell-selection-radio" id="add-shell-select-cmd">
+                <label for="add-shell-select-cmd">Command Prompt</label>
+              </div>
+              <div class="select-radio">
+                <input type="radio" value="cmd-dev" name="add-shell-selection-radio" id="add-shell-select-cmd-dev">
+                <label for="add-shell-select-cmd-dev">Developer Command Prompt</label>
+              </div>
+              <div class="select-radio">
+                <input type="radio" value="PowerShell" name="add-shell-selection-radio" id="add-shell-select-shell">
+                <label for="add-shell-select-shell">PowerShell</label>
+              </div>
+              <div class="select-radio">
+                <input type="radio" value="PowerShell-dev" name="add-shell-selection-radio" id="add-shell-select-shell-dev">
+                <label for="add-shell-select-shell-dev">Developer PowerShell</label>
+              </div>
+              <div class="select-radio">
+                <input type="radio" value="wsl" name="add-shell-selection-radio" id="add-shell-select-wsl">
+                <label for="add-shell-select-wsl">WSL</label>
+              </div>
+            </fieldset>
+          </div>
         </div>
-        <div class="button-wrap">
-          <button data-type="ssh" aria-label="新しいSSHセッションを開く" style="border-right:1px solid whitesmoke;" title="新しいタブを開く(SSH)" class="add-tab-btn">＋ SSH</button>
+        <div class="button-wrap" id="add-tab-ssh-session">
+          <button data-type="ssh" aria-label="新しいSSHセッションを開く" style="border-right:1px solid #525252;" title="新しいタブを開く(SSH)" class="add-tab-btn">＋ SSH</button>
           <button data-type="ssh-profile" aria-label="SSH接続プロファイルを開く" title="SSH接続プロファイルを開く" class="add-tab-btn">Profile</button>
         </div>
       </div>
     </div>
     <div class="terminal-accessibility-elem">
       <a class="focus-only" href="#">ターミナル開始位置（フォーカス専用）</a>
-      <div id="terminal-screens">
-        <!--<div class="command-send-elem">
-          <input id="txtMessage" placeholder="input command here..." autofocus type="text" class="form-control" />
-        </div>-->
-        <!--<div class="screen"></div>-->
-      </div>
+      <div id="terminal-screens"></div>
       <a class="focus-only" href="#">ターミナル終了位置（フォーカス専用）</a>
       <span id="speak-live-text" aria-live="assertive"></span>
     </div>

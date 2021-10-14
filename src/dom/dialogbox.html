@@ -43,14 +43,30 @@
         <div class="item">
           <fieldset id="set-startup-terminal-mode">
             <legend>起動時のターミナルモード</legend>
-            <div class="label" style="flex-basis:60%;"><label>起動時のターミナルモード</label></div>
-            <div class="input radio" style="flex-basis:40%;">
+            <div class="label" style="flex-basis:32%;"><label>起動時のターミナルモード</label></div>
+            <div class="input radio" style="flex-basis:68%;padding-right:0;">
+              <div class="radiobox" style="width:180px;">
+                <input type="radio" value="cmd" name="set-startup-terminal-mode" id="set-stm-cmd">
+                <label for="set-stm-cmd">Command Prompt</label>
+              </div>
+              <div class="radiobox" style="width:272px;">
+                <input type="radio" value="cmd-dev" name="set-startup-terminal-mode" id="set-stm-cmd-dev">
+                <label for="set-stm-cmd-dev">Developer Command Prompt</label>
+              </div>
               <div class="radiobox">
-                <input type="radio" value="shell" name="set-startup-terminal-mode" id="set-stm-shell" value="0">
+                <input type="radio" value="PowerShell" name="set-startup-terminal-mode" id="set-stm-shell">
                 <label for="set-stm-shell">PowerShell</label>
               </div>
               <div class="radiobox">
-                <input type="radio" value="ssh" name="set-startup-terminal-mode" id="set-stm-ssh" value="1">
+                <input type="radio" value="PowerShell-dev" name="set-startup-terminal-mode" id="set-stm-shell-dev">
+                <label for="set-stm-shell-dev">Developer PowerShell</label>
+              </div>
+              <div class="radiobox">
+                <input type="radio" value="wsl" name="set-startup-terminal-mode" id="set-stm-wsl">
+                <label for="set-stm-wsl">WSL</label>
+              </div>
+              <div class="radiobox">
+                <input type="radio" value="ssh" name="set-startup-terminal-mode" id="set-stm-ssh">
                 <label for="set-stm-ssh">SSH・SFTP</label>
               </div>
             </div>

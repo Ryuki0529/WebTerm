@@ -15,7 +15,10 @@ class RendererMain {
   #ipcRenderer = IpcRenderer;
 
   #screenSelections = document.getElementById('screen-tabs');
-  #addScreenTrigger = document.getElementsByClassName('add-tab-btn');
+  #addShellTabBtn = document.getElementById('add-shell-tab');
+  #addShellSelectionBtn = document.getElementById('add-shell-selection');
+  #addShellSelectionContent = document.getElementById('add-shell-selection-content');
+  #addTabSshSession = document.querySelectorAll('#add-tab-ssh-session button');
   #commandResult = document.getElementById('terminal-screens');
   #settingModalElem = document.getElementById('app-setting-modal');
   #sshConnectionModal = document.getElementById('ssh-conection-modal');
@@ -46,23 +49,77 @@ class RendererMain {
       this.#CONFIG = config; this.#refreshTermScreen();
     });
 
+    this.#addShellSelectionContent
+      .querySelector(`input[type="radio"][value="${this.#CONFIG.appConfig.app.pushCurrentShellType}"]`).click();
+
     this.#createTabSelection(FIRST_GET.get('d_mode'));
-    [...this.#addScreenTrigger].forEach(trigger => {
-      trigger.addEventListener('click', event => {
-        this.#createTabSelection(event.target.dataset.type);
+
+    [...this.#addTabSshSession].forEach((elem) => {
+      elem.addEventListener('click', (e) => {
+        this.#createTabSelection( e.target.dataset.type );
         this.#screenSelections.scrollLeft = this.#screenSelections.clientWidth;
       });
     });
 
-    this.#ipcRenderer.on("shellprocess-incomingData", (event, arg) => {
-      let buffer = this.#currentScreenType === 'ssh' ? (new TextDecoder).decode(arg.buffer) : arg.buffer;
-      if (buffer.match('\n')) this.#isSpeech = true;
-      setTimeout(() => {
-        if (this.#isSpeech && this.#terminalsConfFlag[arg.screenID].isSpeech) {
-          this.#ipcRenderer.send('text-to-speech', stripAnsi.unstyle(buffer));
+    this.#addShellTabBtn.addEventListener('click', event => {
+      this.#createTabSelection(
+        this.#addShellSelectionContent
+          .querySelector('input[type="radio"]:checked').value
+      );
+      this.#screenSelections.scrollLeft = this.#screenSelections.clientWidth;
+    });
+
+    [...this.#addShellSelectionContent.querySelectorAll('input[type="radio"]')].forEach((elem) => {
+      elem.addEventListener('click', ( e ) => {
+        if ( e.detail > 0 ) {
+          this.#addShellSelectionContent.classList.remove('show');
+          this.#addShellTabBtn.click();
+          this.#CONFIG.appConfig.app.pushCurrentShellType = this.#addShellSelectionContent
+            .querySelector('#add-shell-selection-content input[type="radio"]:checked').value
+          this.#configUpdate();
         }
-      }, 150);
-      (this.#terminals.get(Number(arg.screenID))).write(this.#editBufferStream(buffer));
+      });
+      elem.addEventListener('keypress', ( e ) => {
+        if ( e.code === 'Enter' ) {
+          this.#addShellSelectionContent.classList.remove('show');
+          this.#addShellTabBtn.click();
+        } else {
+          this.#CONFIG.appConfig.app.pushCurrentShellType = this.#addShellSelectionContent
+            .querySelector('#add-shell-selection-content input[type="radio"]:checked').value
+          this.#configUpdate();
+        }
+      });
+    });
+
+    this.#addShellSelectionContent.addEventListener('keydown', ( e ) => {
+      if ( e.code === 'Escape' ) {
+        this.#addShellSelectionContent.classList.remove('show');
+      }
+    });
+
+    this.#addShellSelectionBtn.addEventListener('click', ( e ) => {
+      if ( this.#addShellSelectionContent.classList.contains('show') ) {
+        this.#addShellSelectionContent.classList.remove('show');
+      } else {
+        this.#addShellSelectionContent.classList.toggle('show');
+        setTimeout(() => {
+          this.#addShellSelectionContent
+            .querySelector('input[type="radio"]:checked').focus();
+        }, 400);
+      }
+    });
+
+    this.#commandResult.addEventListener('click', ( e ) => {
+      this.#addShellSelectionContent.classList.contains('show')
+        ? this.#addShellSelectionContent.classList.remove('show') : null;
+    });
+
+    this.#ipcRenderer.on("shellprocess-incomingData", (event, arg) => {
+      (this.#terminals.get(Number(arg.screenID))).write(this.#editBufferStream(arg.buffer));
+      if (this.#isSpeech && this.#terminalsConfFlag[arg.screenID].isSpeech && this.#CONFIG.appConfig.app.accessibility.screenReaderMode > 0) {
+        let buffer = this.#currentScreenType === 'ssh' ? (new TextDecoder).decode(arg.buffer) : arg.buffer;
+        this.speakToText(stripAnsi.unstyle(buffer));
+      }
     });
 
     this.#screenSelections.addEventListener('wheel', event => {
@@ -99,7 +156,7 @@ class RendererMain {
 
     document.getElementById('new-shell-window')
       .addEventListener('click', event => {
-        this.#ipcRenderer.send('new-app', 'shell');
+        this.#ipcRenderer.send('new-app', this.#CONFIG.appConfig.app.startUpTerminalMode);
       });
 
     document.getElementById('window-maximize')
@@ -132,8 +189,16 @@ class RendererMain {
           this.#settingModalElem.querySelector('#set-srm-none').click(); break;
       }
       switch (this.#CONFIG.appConfig.app.startUpTerminalMode) {
-        case 'shell':
+        case 'PowerShell':
           this.#settingModalElem.querySelector('#set-stm-shell').click(); break;
+        case 'PowerShell-dev':
+          this.#settingModalElem.querySelector('#set-stm-shell-dev').click(); break;
+        case 'cmd':
+          this.#settingModalElem.querySelector('#set-stm-cmd').click(); break;
+        case 'cmd-dev':
+          this.#settingModalElem.querySelector('#set-stm-cmd-dev').click(); break;
+        case 'wsl':
+          this.#settingModalElem.querySelector('#set-stm-wsl').click(); break;
         case 'ssh':
           this.#settingModalElem.querySelector('#set-stm-ssh').click(); break;
         default:
@@ -396,7 +461,7 @@ class RendererMain {
     this.#sshProfileModal.showModal();
   }
 
-  async #createTabSelection(mode = 'shell') {
+  async #createTabSelection(mode = 'PowerShell') {
 
     let sshConfigResult = {}
     if (mode === 'ssh') {
@@ -449,9 +514,24 @@ class RendererMain {
     let closeBtn = document.createElement('button');
     closeBtn.setAttribute('class', 'screen-close');
     closeBtn.textContent = 'X';
-    if (mode === 'shell') {
-      tabLavel.textContent = 'PowerShell #' + this.#tabNumber;
-      closeBtn.setAttribute('aria-label', `PowerShell ${this.#tabNumber}のタブを閉じる`);
+    if (mode === 'PowerShell' || mode === 'PowerShell-dev' || mode === 'cmd' || mode === 'cmd-dev' || mode === 'wsl') {
+      switch ( mode ) {
+        case 'PowerShell':
+          closeBtn.setAttribute('aria-label', `PowerShell ${this.#tabNumber}のタブを閉じる`);
+          tabLavel.textContent = 'PowerShell #' + this.#tabNumber; break;
+        case 'PowerShell-dev':
+          closeBtn.setAttribute('aria-label', `Developer-PS ${this.#tabNumber}のタブを閉じる`);
+          tabLavel.textContent = 'Developer-PS #' + this.#tabNumber; break;
+        case 'cmd':
+          closeBtn.setAttribute('aria-label', `Command Prompt ${this.#tabNumber}のタブを閉じる`);
+          tabLavel.textContent = 'Command Prompt #' + this.#tabNumber; break;
+        case 'cmd-dev':
+          closeBtn.setAttribute('aria-label', `Developer-CP ${this.#tabNumber}のタブを閉じる`);
+          tabLavel.textContent = 'Developer-CP #' + this.#tabNumber; break;
+        case 'wsl':
+          closeBtn.setAttribute('aria-label', `WSL ${this.#tabNumber}のタブを閉じる`);
+          tabLavel.textContent = 'WSL #' + this.#tabNumber; break;
+      }
     } else if (mode === 'ssh') {
       if (sshConfigResult.profile === false) {
         tabLavel.innerHTML = '<span class="ssh">SSH</span> ' + sshConfigResult.sshConfig.host;
@@ -530,6 +610,7 @@ class RendererMain {
         event.preventDefault(); window.open(url);
       })
     );
+    (this.#terminals.get(screenID)).setOption('convertEol', true);
 
     this.#jumpPoints[ screenID ] = { lineNumbers: [], hist: {} };
 
@@ -541,9 +622,17 @@ class RendererMain {
 
     /*(this.#terminals.get(screenID)).onSelectionChange(() => {});*/
 
-    this.#ipcRenderer.sendSync(`${mode === "shell" ? "shell" : "ssh"}process-create`, {
+    let ipcChannelText = '';
+    if (
+        mode === 'PowerShell' || mode === 'PowerShell-dev'
+        || mode === 'cmd' || mode === 'cmd-dev' || mode === 'wsl'
+      ){
+      ipcChannelText = 'shellprocess-create';
+    }else ipcChannelText = 'sshprocess-create';
+
+    this.#ipcRenderer.sendSync( ipcChannelText, {
       window: this.#windowID, screenID: screenID,
-      cols: (this.#terminals.get(screenID)).cols,
+      cols: (this.#terminals.get(screenID)).cols, mode,
       rows: (this.#terminals.get(screenID)).rows, sshConfig
     });
 
@@ -559,7 +648,12 @@ class RendererMain {
           return false;
         }
       } else if (e.ctrlKey && e.key === 'v') {
-        this.#screenKeyStrokeSend(this.#ipcRenderer.on('clipboard-read'));
+        //let clip = this.#ipcRenderer.sendSync('clipboard-read');
+        //this.#screenKeyStrokeSend(clip);
+        setTimeout(() => {
+          (this.#terminals.get(screenID)).blur();
+          (this.#terminals.get(screenID)).focus();
+        }, 60);
         return false;
       } else if (e.ctrlKey && e.key === 'b') {
         if (this.#CONFIG.appConfig.app.accessibility.screenCursorMode && this.#virtualCursorMode.bagFlag) {
@@ -611,7 +705,6 @@ class RendererMain {
       } else if ( e.key === 'O' && e.ctrlKey && e.shiftKey ) {
         if ( this.#terminalsConfFlag[screenID].isSpeech === true && this.#terminalsConfFlag[screenID].bugflag === true ) {
           this.#terminalsConfFlag[screenID].isSpeech = false; this.speakToText('カレントスクリーンスピーチOFF');
-          console.log(this.#terminalsConfFlag);
         } else if ( this.#terminalsConfFlag[screenID].isSpeech === false && this.#terminalsConfFlag[screenID].bugflag === false ) {
           this.#terminalsConfFlag[screenID].isSpeech = true; this.speakToText('カレントスクリーンスピーチON');
           console.log(this.#terminalsConfFlag);
@@ -643,9 +736,9 @@ class RendererMain {
 
     (this.#terminals.get(screenID)).textarea.addEventListener('keydown', (e) => {
       setTimeout(() => {
-        this.#currentInputString.text = e.target.value;
-        this.#currentInputString.pos = e.target.selectionStart;
-        e.target.selectionEnd;
+        this.#currentInputString.text = this.getCurrentCommandInput();
+        this.#currentInputString.pos = (this.#terminals.get(screenID)).buffer.active.cursorX - this.#currentCursorPosition.x;
+        //e.target.selectionEnd;
       }, 60);
     });
 
@@ -669,22 +762,30 @@ class RendererMain {
         let cursorX = (this.#terminals.get(screenID)).buffer.active.cursorX;
         this.#currentCursorPosition.x = cursorX;
         this.#currentCursorPosition.y = cursorY;
+        //(this.#terminals.get(screenID)).write('\r\n');
       }, 300);
+      this.#isSpeech = true;
     });
+
+    //(this.#terminals.get(screenID)).onRender((e) => {  });
 
     (this.#terminals.get(screenID)).onKey((e) => {
       if (
         e.domEvent.code === 'ArrowUp' || e.domEvent.code === 'ArrowDown'
         || e.domEvent.code === 'Tab'
       ) {
-        //this.#ipcRenderer.send('speach-stop');
         //(this.#terminals.get(screenID)).blur();
         //(this.#terminals.get(screenID)).focus();
+        //setTimeout(() => { this.#isSpeech = false }, 200);
         setTimeout(() => {
-          this.#isSpeech = false;
+          this.#currentInputString.text = this.getCurrentCommandInput();
           if ( !editorMode.status ) {
-            document.querySelector(helperElemString).value = this.getCurrentCommandInput();
-            this.speakToText(this.getCurrentCommandInput());
+            let command = this.getCurrentCommandInput();
+            let helper = document.querySelector(helperElemString);
+            helper.value = command;
+            helper.setSelectionRange(command.length, command.length);
+            //this.speakToText(command);
+            //console.log(document.querySelector(helperElemString).value);
           } else {
             let text = (this.getCurrentBufferText()).replace(/\s{8}/, '\t');
             let tabCount = ( text.match( /\t/ ) || [] ).length;
@@ -702,12 +803,15 @@ class RendererMain {
             this.speakToText( text );
             //console.log( helperElem.value );
           }
-        }, 100);
-      } else if (e.domEvent.code === 'ArrowRight') {
-        this.#isSpeech = false;
-      } else if (e.domEvent.code === 'ArrowLeft') {
-        this.#isSpeech = false;
-      } else { this.#isSpeech = false; }
+        }, 150);
+      } else if ( e.domEvent.code === 'Enter' ) {
+        /*setTimeout(() => {
+          this.#screenKeyStrokeSend('test');
+        }, 500);*/
+        this.#isSpeech = true;
+      } else {
+        //this.#isSpeech = false;
+      }
     });
 
     document.querySelector( ariaLiveElemString ).setAttribute('style', 'display:none;');
@@ -743,9 +847,9 @@ class RendererMain {
     if (data != "") this.#ipcRenderer.send('clipboard-copy', data);
   }
 
-  #screenKeyStrokeSend(keystroke) {
+  #screenKeyStrokeSend(keystroke, screenID=this.#currentScreenID) {
     this.#ipcRenderer.send('screen-keystroke', {
-      window: this.#windowID, screenID: this.#currentScreenID,
+      window: this.#windowID, screenID,
       buffer: keystroke, mode: this.#currentScreenType
     });
   }
@@ -788,10 +892,22 @@ class RendererMain {
   }
 
   getCurrentCommandInput() {
-    return (this.#terminals.get(this.#currentScreenID)).buffer.active
+    let command = (this.#terminals.get(this.#currentScreenID)).buffer.active
       .getLine(this.#currentCursorPosition.y).translateToString(true,
         this.#currentCursorPosition.x
       );
+
+    if ( ((this.#terminals.get(this.#currentScreenID)).rows - 1) !== this.#currentCursorPosition.y ) {
+      for ( let i=(this.#currentCursorPosition.y + 1); i< (this.#terminals.get(this.#currentScreenID)).rows; i++) {
+        let tmp = (this.#terminals.get(this.#currentScreenID)).buffer.active
+        .getLine(i).translateToString(true,);
+        if ( tmp !== '' ) {
+          command += tmp;
+        } else break;
+      }
+    }
+
+    return command;
   }
 
   getBufferText( startY, endY, screenID = this.#currentScreenID ) {
@@ -890,6 +1006,11 @@ function loadElement(url) {
     };
     xhr.send();
   });
+}
+
+function strIns(str, idx, val){
+  var res = str.slice(0, idx) + val + str.slice(idx);
+  return res;
 }
 
 function sleep(time) {
